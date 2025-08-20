@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Combustível</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Formulário de Combustível</h1>
+        <form id="combustivel-form">
+            <div class="form-group">
+                <label for="posto">Posto de Combustível:</label>
+                <select id="posto">
+                    <option value="Posbral - Posto Bradão">Posbral - Posto Bradão</option>
+                    <option value="Auto Posto AS">Auto Posto AS</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="lotacao">Lotação:</label>
+                <select id="lotacao" required>
+                    <option value="">Selecione a Lotação</option>
+                    <option value="Sec. Administração">Sec. Administração</option>
+                    <option value="Sec. Agricultura">Sec. Agricultura</option>
+                    <option value="Sec. Assistência">Sec. Assistência</option>
+                    <option value="Sec. Assistência (Conselho Tutelar)">Sec. Assistência (Conselho Tutelar)</option>
+                    <option value="Sec. Cultura">Sec. Cultura</option>
+                    <option value="Sec. Educação">Sec. Educação</option>
+                    <option value="Sec. Governo">Sec. Governo</option>
+                    <option value="Sec. Infraestrutura">Sec. Infraestrutura</option>
+                    <option value="Sec. Saúde">Sec. Saúde</option>
+                    <option value="Outros">Outros</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="tipo">Tipo de Combustível:</label>
+                <select id="tipo" required>
+                    <option value="">Selecione o Tipo</option>
+                    <option value="Gasolina Comum">Gasolina Comum</option>
+                    <option value="Diesel S10">Diesel S10</option>
+                    <option value="Etanol (Álcool Etílico)">Etanol (Álcool Etílico)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="litros">Quantidade (Litros):</label>
+                <input type="number" id="litros" min="0" step="0.01">
+            </div>
+            
+            <div class="form-group">
+                <label for="valor">Valor (R$):</label>
+                <input type="number" id="valor" min="0" step="0.01" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="recurso">Tipo de Recurso:</label>
+                <select id="recurso">
+                    <option value="Rec. Próprio">Rec. Próprio</option>
+                    <option value="Rec. da Secretaria">Rec. da Secretaria</option>
+                    <option value="Outros">Outros</option>
+                </select>
+            </div>
+
+            <button type="submit">Adicionar Lançamento</button>
+        </form>
+
+        <div id="relatorio-output" class="relatorio-container">
+            </div>
+
+        <div class="botoes-relatorio">
+            <button id="gerar-pdf">Gerar PDF</button>
+            <button id="gerar-imagem">Gerar Imagem</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
