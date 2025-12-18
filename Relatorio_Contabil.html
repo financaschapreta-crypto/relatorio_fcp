@@ -120,6 +120,7 @@
                 <option value="Sec. Educação">Sec. Educação</option>
                 <option value="Sec. Esporte">Sec. Esporte</option>
                 <option value="Sec. Governo">Sec. Governo</option>
+                <option value="Sec. Infraestrutura">Sec. Infraestrutura</option>
             </select>
         </div>
 
@@ -228,7 +229,6 @@
     function atualizarDatalist() {
         const datalist = document.getElementById('listaCredores');
         datalist.innerHTML = "";
-        // Ordena alfabeticamente as sugestões
         credoresSalvos.sort().forEach(credor => {
             const option = document.createElement('option');
             option.value = credor;
