@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Relatórios</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #fff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .dashboard-container h1 {
+            color: #4CAF50;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .dashboard-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-color: #e8f5e9;
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-button:hover {
+            background-color: #4CAF50;
+            color: #fff;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Painel de Relatórios</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background-color: #fff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            text-align: left;
+        }
+
+        .login-form h1 {
+            color: #4CAF50;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .login-form input {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .login-form button {
+            padding: 12px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-form button:hover {
+            background-color: #45a049;
+        }
+
+        #mensagem-erro {
+            color: #e53935;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+            display: none; /* Inicia escondido */
+        }
+        
+        .dashboard-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #fff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            display: none; /* Inicia escondido, só aparece após o login */
+        }
+
+        .dashboard-container h1 {
+            color: #4CAF50;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .dashboard-button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-color: #e8f5e9;
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-button:hover {
+            background-color: #4CAF50;
+            color: #fff;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="login-container">
+        <form class="login-form" onsubmit="event.preventDefault(); verificarLogin();">
+            <h1>Login</h1>
+            <input type="text" id="username" placeholder="Usuário" required>
+            <input type="password" id="password" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
+            <p id="mensagem-erro">Usuário ou senha incorretos. Tente novamente.</p>
+        </form>
+    </div>
+
+    <div class="dashboard-container" id="dashboard-container">
+        <h1>Painel de Relatórios</h1>
+        <p>Selecione o tipo de relatório que deseja acessar:</p>
+        
+        <div class="dashboard-grid">
+            <a href="relatorio-pagamento.html" class="dashboard-button">Relatório de Pagamento</a>
+            <a href="combustivel.html" class="dashboard-button">Relatório de Combustível</a>
+            <a href="Relatorio_Contabil.html" class="dashboard-button">Relatório a Contabilidade</a>
+            <a href="NOTA_DE_SERVIÇOS.HTML" class="dashboard-button">Demonstrativo de Nota de Serviço</a>
+            <a href="https://sitecontabil.com.br/certidoes_negativas" class="dashboard-button">Outros Relatórios</a>
+        </div>
+    </div>
+
+    <script>
+        function verificarLogin() {
+            const usernameInput = document.getElementById('username').value;
+            const passwordInput = document.getElementById('password').value;
+            const mensagemErro = document.getElementById('mensagem-erro');
+            const loginContainer = document.getElementById('login-container');
+            const dashboardContainer = document.getElementById('dashboard-container');
+
+            // Usuário e senha corretos
+            const loginCorreto = "financas";
+            const senhaCorreta = "52369672";
+
+            if (usernameInput === loginCorreto && passwordInput === senhaCorreta) {
+                mensagemErro.style.display = 'none';
+                loginContainer.style.display = 'none';
+                dashboardContainer.style.display = 'block';
+            } else {
+                mensagemErro.style.display = 'block';
+            }
+        }
+    </script>
+
+</body>
+</html>
+<body>
+
+    <div class="dashboard-container">
+        <h1>Painel de Relatórios</h1>
+        <p>Selecione o tipo de relatório que deseja acessar:</p>
+        
+        <div class="dashboard-grid">
+            <a href="relatorio-pagamento.html" class="dashboard-button">Relatório de Pagamento</a>
+            <a href="combustivel.html" class="dashboard-button">Relatório de Combustível</a>
+            <a href="relatorio-contabilidade.html" class="dashboard-button">Relatório a Contabilidade</a>
+            <a href="relatorio-financeiro.html" class="dashboard-button">Relatório Financeiro</a>
+            <a href="https://sitecontabil.com.br/certidoes_negativas" class="dashboard-button">Outros Relatórios</a>
+        </div>
+    </div>
+
+</body>
+</html>

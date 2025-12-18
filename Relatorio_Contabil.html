@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerador de Relatório - Finanças (Com Memória)</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --edit: #f39c12;
+            --delete: #e74c3c;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            height: 100%; font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .container { display: flex; height: 100vh; }
+
+        /* Lado Esquerdo - Formulário */
+        .input-section {
+            width: 50%; padding: 20px;
+            background: #f8f9fa; border-right: 2px solid #ccc;
+            overflow-y: auto; box-sizing: border-box;
+        }
+
+        /* Lado Direito - Relatório */
+        .preview-section {
+            width: 50%; padding: 15px;
+            background: white; overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+        input, select, textarea { 
+            width: 100%; padding: 8px; border: 1px solid #bbb; 
+            border-radius: 4px; box-sizing: border-box;
+        }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button {
+            flex: 1; padding: 10px; color: white; border: none;
+            border-radius: 4px; cursor: pointer; font-weight: bold;
+        }
+
+        .btn-add { background: var(--accent); }
+        .btn-print { background: var(--primary); }
+
+        /* Tabela Compacta */
+        #relatorio-print { font-size: 11px; color: black; }
+        .header-relatorio { text-align: center; margin-bottom: 15px; line-height: 1.2; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { 
+            border: 1px solid #000; 
+            padding: 2px 5px;
+            text-align: left; 
+            line-height: 1.1;
+        }
+        th { background: #eee; text-transform: uppercase; }
+
+        .actions-col { width: 80px; text-align: center; }
+        .btn-acao { 
+            padding: 2px 5px; font-size: 10px; margin: 0 2px;
+            cursor: pointer; border-radius: 2px; border: none; color: white;
+        }
+
+        .assinaturas { margin-top: 30px; font-size: 11px; }
+        .linha { border-top: 1px solid #000; width: 250px; margin-top: 30px; }
+
+        @media print {
+            .input-section, .actions-col, .btn-acao, .btn-group { display: none !important; }
+            .preview-section { width: 100% !important; padding: 0; }
+            .container { display: block; }
+            body { overflow: visible; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="input-section">
+        <h3 style="margin-top:0">Configuração do Relatório</h3>
+        
+        <div class="form-group">
+            <label>Entregue por:</label>
+            <select id="entreguePor" onchange="atualizarPreview()">
+                <option value="Antônio Victor">Antônio Victor</option>
+                <option value="Eduardo">Eduardo</option>
+                <option value="Marcos">Marcos</option>
+            </select>
+        </div>
+
+        <hr>
+
+        <input type="hidden" id="editIndex" value="-1">
+        
+        <div class="form-group">
+            <label>Descrição/Credor (Auto-sugestão):</label>
+            <input type="text" id="desc" list="listaCredores" placeholder="Comece a digitar...">
+            <datalist id="listaCredores"></datalist>
+            <small style="color: #666;">Novos nomes serão salvos automaticamente.</small>
+        </div>
+
+        <div class="form-group">
+            <label>Lotação:</label>
+            <select id="lotacao">
+                <option value="Encargos">Encargos</option>
+                <option value="Folha de Pagamento">Folha de Pagamento</option>
+                <option value="Funserp">Funserp</option>
+                <option value="Gabinete">Gabinete</option>
+                <option value="Outros">Outros</option>
+                <option value="Sec. Administração">Sec. Administração</option>
+                <option value="Sec. Agricultura">Sec. Agricultura</option>
+                <option value="Sec. Assistência Social">Sec. Assistência Social</option>
+                <option value="Sec. Cultura">Sec. Cultura</option>
+                <option value="Sec. Educação">Sec. Educação</option>
+                <option value="Sec. Esporte">Sec. Esporte</option>
+                <option value="Sec. Governo">Sec. Governo</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Valor (R$):</label>
+            <input type="number" id="valor" step="0.01">
+        </div>
+
+        <div class="form-group">
+            <label>Observação:</label>
+            <textarea id="obs" rows="2"></textarea>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-add" id="btnSalvar" onclick="salvarItem()">Adicionar à Lista</button>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn-print" onclick="window.print()">Gerar PDF / Imprimir</button>
+            <button style="background: #95a5a6;" onclick="limparSugestoes()">Limpar Memória de Nomes</button>
+        </div>
+    </div>
+
+    <div class="preview-section">
+        <div id="relatorio-print">
+            <div class="header-relatorio">
+                <strong>PREFEITURA MUNICIPAL DE CHÃ PRETA/AL</strong><br>
+                <strong>SECRETARIA MUNICIPAL DE FINANÇAS</strong><br>
+                <span style="font-size: 13px;">RELATÓRIO À CONTABILIDADE - <span id="dataDia"></span></span>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 30px;">ID</th>
+                        <th>DESCRIÇÃO/CREDOR</th>
+                        <th>LOTAÇÃO</th>
+                        <th>VALOR</th>
+                        <th>OBS</th>
+                        <th class="actions-col">AÇÕES</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaCorpo"></tbody>
+            </table>
+
+            <div class="assinaturas">
+                <div class="linha"></div>
+                <strong>Entregue por: <span id="spanEntregue">Antônio Victor</span></strong>
+                
+                <div class="linha"></div>
+                <strong>Recebido por: ________________________________</strong><br>
+                <span id="dataDiaAssinatura"></span><br><br>
+                <strong>SECRETARIA MUNICIPAL DE FINANÇAS</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let itens = [];
+    let credoresSalvos = JSON.parse(localStorage.getItem('credores')) || [];
+
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    document.getElementById('dataDia').innerText = hoje;
+    document.getElementById('dataDiaAssinatura').innerText = hoje;
+
+    // Inicia a lista de sugestões ao carregar
+    atualizarDatalist();
+
+    function salvarItem() {
+        const desc = document.getElementById('desc').value.trim();
+        const lotacao = document.getElementById('lotacao').value;
+        const valor = document.getElementById('valor').value;
+        const obs = document.getElementById('obs').value;
+        const editIndex = document.getElementById('editIndex').value;
+
+        if(!desc || !valor) return alert("Preencha os campos obrigatórios!");
+
+        // Salva o credor na memória se ele for novo
+        if (!credoresSalvos.includes(desc)) {
+            credoresSalvos.push(desc);
+            localStorage.setItem('credores', JSON.stringify(credoresSalvos));
+            atualizarDatalist();
+        }
+
+        const item = {
+            desc, lotacao, 
+            valor: parseFloat(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+            valorOriginal: valor,
+            obs
+        };
+
+        if(editIndex === "-1") {
+            itens.push(item);
+        } else {
+            itens[editIndex] = item;
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('btnSalvar').innerText = "Adicionar à Lista";
+            document.getElementById('btnSalvar').style.background = "var(--accent)";
+        }
+
+        limparCampos();
+        renderizar();
+    }
+
+    function atualizarDatalist() {
+        const datalist = document.getElementById('listaCredores');
+        datalist.innerHTML = "";
+        // Ordena alfabeticamente as sugestões
+        credoresSalvos.sort().forEach(credor => {
+            const option = document.createElement('option');
+            option.value = credor;
+            datalist.appendChild(option);
+        });
+    }
+
+    function limparSugestoes() {
+        if(confirm("Isso apagará todos os nomes salvos para sugestão. Deseja continuar?")) {
+            localStorage.removeItem('credores');
+            credoresSalvos = [];
+            atualizarDatalist();
+        }
+    }
+
+    function editarItem(index) {
+        const item = itens[index];
+        document.getElementById('desc').value = item.desc;
+        document.getElementById('lotacao').value = item.lotacao;
+        document.getElementById('valor').value = item.valorOriginal;
+        document.getElementById('obs').value = item.obs;
+        
+        document.getElementById('editIndex').value = index;
+        document.getElementById('btnSalvar').innerText = "Confirmar Alteração";
+        document.getElementById('btnSalvar').style.background = "var(--edit)";
+    }
+
+    function excluirItem(index) {
+        if(confirm("Excluir este item da lista atual?")) {
+            itens.splice(index, 1);
+            renderizar();
+        }
+    }
+
+    function renderizar() {
+        const corpo = document.getElementById('tabelaCorpo');
+        corpo.innerHTML = "";
+        itens.forEach((item, index) => {
+            corpo.innerHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.desc}</td>
+                    <td>${item.lotacao}</td>
+                    <td>${item.valor}</td>
+                    <td>${item.obs}</td>
+                    <td class="actions-col">
+                        <button class="btn-acao" style="background:var(--edit)" onclick="editarItem(${index})">ED</button>
+                        <button class="btn-acao" style="background:var(--delete)" onclick="excluirItem(${index})">X</button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    function limparCampos() {
+        document.getElementById('desc').value = "";
+        document.getElementById('valor').value = "";
+        document.getElementById('obs').value = "";
+    }
+
+    function atualizarPreview() {
+        document.getElementById('spanEntregue').innerText = document.getElementById('entreguePor').value;
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Impostos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #eef1f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .form-section, .results-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-section h2, .results-section h2 {
+            font-size: 1.5rem;
+            color: #007BFF;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #007BFF;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="text"], input[type="date"], input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus, select:focus {
+            border-color: #007BFF;
+            outline: none;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .result-box {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Alterado para um font-family mais comum */
+            line-height: 1.3; /* Ajustado para reduzir o espaçamento */
+            border: 1px dashed #ccc;
+        }
+
+        .result-header {
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #007BFF;
+            border-bottom: 1px solid #007BFF;
+            padding-bottom: 10px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 4px; /* Reduzido o espaçamento entre os itens */
+        }
+        
+        .result-item-label {
+            font-weight: 600;
+            color: #333;
+            flex-grow: 1;
+            padding-right: 10px; /* Adicionado um pouco de espaço à direita do label */
+        }
+
+        .result-value {
+            text-align: right;
+            font-weight: normal;
+        }
+
+        .total-impostos, .valor-liquido {
+            border-top: 1px solid #ccc;
+            margin-top: 15px;
+            padding-top: 15px;
+        }
+
+        .valor-liquido .result-item-label, .valor-liquido .result-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        #error-message {
+            color: #dc3545;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-top: -10px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-group label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="form-section">
+            <h2>Dados do Credor</h2>
+            <form id="creditorForm">
+                <div>
+                    <label for="nomeEmpresa">Nome/Empresa:</label>
+                    <input type="text" id="nomeEmpresa">
+                </div>
+                <div>
+                    <label for="cpfCnpj">CPF/CNPJ:</label>
+                    <input type="text" id="cpfCnpj" maxlength="18" placeholder="Digite apenas números">
+                </div>
+                <div>
+                    <label for="dataNascimento">Data de Nascimento:</label>
+                    <input type="date" id="dataNascimento">
+                </div>
+                <div>
+                    <label for="lotacao">Lotação:</label>
+                    <select id="lotacao">
+                        <option value="">Selecione...</option>
+                        <option value="Sec. Administração">Sec. Administração</option>
+                        <option value="Sec. Agricultura">Sec. Agricultura</option>
+                        <option value="Sec. Infraestrutura">Sec. Infraestrutura</option>
+                        <option value="Sec. Cultura, Turismo e Meio Ambiente">Sec. Cultura, Turismo e Meio Ambiente</option>
+                        <option value="Sec. Educação">Sec. Educação</option>
+                        <option value="Sec. de Governo">Sec. de Governo</option>
+                        <option value="Sec. de Assistência Social">Sec. de Assistência Social</option>
+                        <option value="Sec. Esporte">Sec. Esporte</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="servicos">Serviços:</label>
+                    <input type="text" id="servicos">
+                </div>
+                <div>
+                    <label for="cbo">CBO:</label>
+                    <input type="text" id="cbo">
+                </div>
+                <div>
+                    <label for="valorBruto">Valor Bruto:</label>
+                    <input type="number" id="valorBruto" step="0.01" min="0">
+                </div>
+                
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="checkIss" checked> Calcular ISS (5%)</label>
+                    <label><input type="checkbox" id="checkInss" checked> Calcular INSS (11%)</label>
+                    <label><input type="checkbox" id="checkIrrf" checked> Calcular IRRF</label>
+                </div>
+
+                <div id="error-message"></div>
+                <button type="submit">Calcular e Imprimir</button>
+            </form>
+        </div>
+
+        <div class="results-section">
+            <h2>Resultados</h2>
+            <div id="resultado" class="result-box">
+                <p>Preencha o formulário e clique em "Calcular" para ver o resultado.</p>
+            </div>
+            <button id="gerarImagem" style="display: none;">Gerar Imagem</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        document.getElementById('creditorForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const valorBrutoInput = document.getElementById('valorBruto').value;
+            const valorBruto = parseFloat(valorBrutoInput.replace(',', '.'));
+
+            if (isNaN(valorBruto) || valorBruto <= 0) {
+                document.getElementById('error-message').textContent = 'Por favor, insira um valor bruto válido para o cálculo.';
+                document.getElementById('resultado').innerHTML = '<p>Preencha o formulário e clique em "Calcular" para ver o resultado.</p>';
+                document.getElementById('gerarImagem').style.display = 'none';
+                return;
+            } else {
+                document.getElementById('error-message').textContent = '';
+            }
+
+            const nomeEmpresa = document.getElementById('nomeEmpresa').value.trim();
+            const cpfCnpj = document.getElementById('cpfCnpj').value.replace(/\D/g, '');
+            const dataNascimento = document.getElementById('dataNascimento').value;
+            const lotacao = document.getElementById('lotacao').value;
+            const servicos = document.getElementById('servicos').value;
+            const cbo = document.getElementById('cbo').value;
+            
+            const calcularIss = document.getElementById('checkIss').checked;
+            const calcularInss = document.getElementById('checkInss').checked;
+            const calcularIrrf = document.getElementById('checkIrrf').checked;
+
+            // Identificar e formatar CPF ou CNPJ (apenas se preenchido)
+            let tipoDocumento = '';
+            let documentoFormatado = '';
+            if (cpfCnpj) {
+                if (cpfCnpj.length === 11) {
+                    tipoDocumento = 'CPF';
+                    documentoFormatado = cpfCnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                } else if (cpfCnpj.length === 14) {
+                    tipoDocumento = 'CNPJ';
+                    documentoFormatado = cpfCnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+                } else {
+                    document.getElementById('error-message').textContent = 'O CPF/CNPJ digitado é inválido. Ele deve ter 11 ou 14 dígitos.';
+                    return;
+                }
+            }
+
+            // Formatar data (apenas se preenchida)
+            let dataFormatada = dataNascimento ? `${dataNascimento.split('-')[2]}/${dataNascimento.split('-')[1]}/${dataNascimento.split('-')[0]}` : '';
+
+            // Cálculos
+            let iss = calcularIss ? valorBruto * 0.05 : 0;
+            let inss = calcularInss ? valorBruto * 0.11 : 0;
+            
+            let irrf = 0;
+            if (calcularIrrf) {
+                const baseIRRF = valorBruto - inss;
+                if (baseIRRF > 5280.00) {
+                    irrf = (baseIRRF * 0.275) - 884.96;
+                } else if (baseIRRF > 4664.68) {
+                    irrf = (baseIRRF * 0.225) - 651.73;
+                } else if (baseIRRF > 3751.05) {
+                    irrf = (baseIRRF * 0.15) - 370.47;
+                } else if (baseIRRF > 2826.65) {
+                    irrf = (baseIRRF * 0.075) - 205.80;
+                }
+                irrf = Math.max(0, irrf);
+            }
+
+            const totalImpostos = iss + inss + irrf;
+            const valorLiquido = valorBruto - totalImpostos;
+
+            // Gerar resultado para impressão
+            let resultadoHTML = `
+                <div class="result-header">Demonstrativo de NF's</div>
+                ${nomeEmpresa ? `<div class="result-item"><span class="result-item-label">Nome/Empresa:</span> <span class="result-value">${nomeEmpresa}</span></div>` : ''}
+                ${documentoFormatado ? `<div class="result-item"><span class="result-item-label">${tipoDocumento}:</span> <span class="result-value">${documentoFormatado}</span></div>` : ''}
+                ${dataFormatada ? `<div class="result-item"><span class="result-item-label">Data de Nascimento:</span> <span class="result-value">${dataFormatada}</span></div>` : ''}
+                ${lotacao ? `<div class="result-item"><span class="result-item-label">Lotação:</span> <span class="result-value">${lotacao}</span></div>` : ''}
+                ${servicos ? `<div class="result-item"><span class="result-item-label">Serviços:</span> <span class="result-value">${servicos}</span></div>` : ''}
+                ${cbo ? `<div class="result-item"><span class="result-item-label">CBO:</span> <span class="result-value">${cbo}</span></div>` : ''}
+                
+                <div class="result-item"><span class="result-item-label">Valor Bruto:</span> <span class="result-value">R$ ${valorBruto.toFixed(2).replace('.', ',')}</span></div>
+                
+                ${calcularIss ? `<div class="result-item"><span class="result-item-label">ISS (5%):</span> <span class="result-value">R$ ${iss.toFixed(2).replace('.', ',')}</span></div>` : ''}
+                ${calcularInss ? `<div class="result-item"><span class="result-item-label">INSS (11%):</span> <span class="result-value">R$ ${inss.toFixed(2).replace('.', ',')}</span></div>` : ''}
+                ${calcularIrrf ? `<div class="result-item"><span class="result-item-label">IRRF:</span> <span class="result-value">R$ ${irrf.toFixed(2).replace('.', ',')}</span></div>` : ''}
+
+                <div class="total-impostos result-item"><span class="result-item-label">Total de Impostos:</span> <span class="result-value">R$ ${totalImpostos.toFixed(2).replace('.', ',')}</span></div>
+                <div class="valor-liquido result-item"><span class="result-item-label">Valor Líquido:</span> <span class="result-value">R$ ${valorLiquido.toFixed(2).replace('.', ',')}</span></div>
+            `;
+            
+            document.getElementById('resultado').innerHTML = resultadoHTML;
+            document.getElementById('gerarImagem').style.display = 'block';
+        });
+
+        document.getElementById('gerarImagem').addEventListener('click', function() {
+            const element = document.getElementById('resultado');
+            // Clona o elemento para adicionar estilos temporários apenas para a imagem
+            const elementToCapture = element.cloneNode(true);
+            elementToCapture.style.padding = '30px'; // Aumenta o padding para a imagem
+            elementToCapture.style.borderRadius = '10px'; // Arredonda bordas
+            elementToCapture.style.boxShadow = '0 0 15px rgba(0,0,0,0.1)'; // Sombra suave
+
+            // Anexa temporariamente para o html2canvas renderizar corretamente
+            document.body.appendChild(elementToCapture);
+
+            html2canvas(elementToCapture, { 
+                scale: 2, 
+                backgroundColor: '#ffffff' // Fundo branco sólido para a imagem
+            }).then(canvas => {
+                document.body.removeChild(elementToCapture); // Remove o elemento clonado
+                const link = document.createElement('a');
+                const nomeCredor = document.getElementById('nomeEmpresa').value.trim().replace(/ /g, '_') || 'Calculo';
+                const data = new Date().toISOString().slice(0, 10);
+                const codigoAleatorio = Math.random().toString(36).substring(2, 8);
+                
+                link.download = `${nomeCredor}_${data}_${codigoAleatorio}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+
+        // Máscara para CPF/CNPJ
+        document.getElementById('cpfCnpj').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 14) {
+                value = value.substring(0, 14);
+            }
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>
