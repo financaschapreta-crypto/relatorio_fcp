@@ -188,9 +188,11 @@
     <div class="container" id="login-container">
         <form class="login-form" onsubmit="event.preventDefault(); verificarLogin();">
             <h1>Login</h1>
+             
             <input type="text" id="username" placeholder="Usuário" required>
             <input type="password" id="password" placeholder="Senha" required>
             <button type="submit">Entrar</button>
+	    <center><h4>LOGIN: financas - SN: 2025</h4><center>
             <p id="mensagem-erro">Usuário ou senha incorretos. Tente novamente.</p>
         </form>
     </div>
@@ -218,7 +220,7 @@
 
             // Usuário e senha corretos
             const loginCorreto = "financas";
-            const senhaCorreta = "52369672";
+            const senhaCorreta = "2025";
 
             if (usernameInput === loginCorreto && passwordInput === senhaCorreta) {
                 mensagemErro.style.display = 'none';
