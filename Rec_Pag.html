@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Finanças - Chã Preta/AL</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root { --primary: #2c3e50; --success: #27ae60; --warning: #f39c12; --danger: #e74c3c; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: var(--bg); overflow: hidden; }
+        .main-container { display: flex; height: 100vh; gap: 15px; padding: 15px; box-sizing: border-box; }
+        
+        /* Painéis */
+        .panel-form { flex: 0 0 350px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow-y: auto; }
+        .panel-view { flex: 1; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
+
+        h2 { color: var(--primary); font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; display: flex; justify-content: space-between; }
+        
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.85rem; color: #444; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 0.9rem; }
+        
+        .btn-row { display: flex; gap: 10px; margin-top: 15px; }
+        button { cursor: pointer; border: none; padding: 10px; border-radius: 5px; font-weight: bold; }
+        .btn-add { background: var(--success); color: white; flex: 1; }
+        .btn-pdf { background: var(--primary); color: white; width: 100%; margin-top: 10px; }
+        .btn-clear { background: #95a5a6; color: white; font-size: 0.7rem; padding: 5px; }
+        
+        /* Tabela */
+        .table-wrapper { flex: 1; overflow-y: auto; margin-top: 10px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { background: var(--primary); color: white; position: sticky; top: 0; padding: 10px; text-align: left; z-index: 10; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+        
+        .actions { display: flex; gap: 5px; }
+        .edit-btn { background: var(--warning); color: white; padding: 3px 7px; border-radius: 3px; }
+        .del-btn { background: var(--danger); color: white; padding: 3px 7px; border-radius: 3px; }
+
+        .summary-box { background: #f8f9fa; padding: 12px; border-radius: 5px; margin-top: 15px; font-size: 0.8rem; border-left: 4px solid var(--primary); }
+        .total-highlight { font-weight: bold; font-size: 1rem; color: var(--primary); display: block; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <aside class="panel-form">
+        <h2>Lançamento</h2>
+        <form id="paymentForm">
+            <input type="hidden" id="editIndex" value="-1">
+            
+            <div class="form-group">
+                <label>Credor * (Auto-sugestão)</label>
+                <input type="text" id="credor" list="listaCredores" required placeholder="Digite ou selecione...">
+                <datalist id="listaCredores"></datalist>
+            </div>
+
+            <div class="form-group">
+                <label>Lotação *</label>
+                <select id="lotacao" required>
+                    <option value="">Selecione...</option>
+                    <optgroup label="Secretarias">
+                        <option value="Sec. Administração">Sec. Administração</option>
+                        <option value="Sec. Agricultura">Sec. Agricultura</option>
+                        <option value="Sec. Assistência Social">Sec. Assistência Social</option>
+                        <option value="Sec. Cultura">Sec. Cultura</option>
+                        <option value="Sec. Educação">Sec. Educação</option>
+                        <option value="Sec. Esporte">Sec. Esporte</option>
+                        <option value="Sec. Finanças">Sec. Finanças</option>
+                        <option value="Sec. Governo">Sec. Governo</option>
+                        <option value="Sec. Saúde">Sec. Saúde</option>
+                    </optgroup>
+                    <optgroup label="Outros Órgãos">
+                        <option value="Gabinete">Gabinete</option>
+                        <option value="Funserp">Funserp</option>
+                        <option value="Outros">Outros</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Valor R$ *</label>
+                <input type="number" id="valor" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label>Tipo de Recurso</label>
+                <select id="recurso">
+                    <option value="Não informado">Selecione...</option>
+                    <option value="Rec. Próprio">Rec. Próprio</option>
+                    <option value="Rec. da Secretaria">Rec. da Secretaria</option>
+                    <option value="Outros Recursos">Outros Recursos</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Observações</label>
+                <textarea id="obs" rows="2"></textarea>
+            </div>
+
+            <button type="submit" class="btn-add" id="mainBtn">Adicionar à Lista</button>
+        </form>
+        
+        <button type="button" class="btn-pdf" onclick="gerarPDF()">Gerar Relatório PDF</button>
+        <button type="button" class="btn-clear" style="width:100%; margin-top:5px;" onclick="limparTudo()">Limpar Planilha Atual</button>
+    </aside>
+
+    <main class="panel-view">
+        <h2>Conferência <small style="font-weight: normal; font-size: 0.7rem; color: #666;">(Salvo automaticamente)</small></h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Credor</th>
+                        <th>Lotação</th>
+                        <th>Valor</th>
+                        <th>Recurso</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="summary-box">
+            <span class="total-highlight" id="totalGeral">Total Geral: R$ 0,00</span>
+            <div id="resumoSubtotais" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div id="totalRecursos"></div>
+                <div id="totalLotacao"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // Memória do Sistema
+    let pagamentos = JSON.parse(localStorage.getItem('pagamentos_cha_preta')) || [];
+    let bancoCredores = JSON.parse(localStorage.getItem('banco_credores')) || [];
+
+    const form = document.getElementById('paymentForm');
+
+    // Inicialização
+    window.onload = () => {
+        atualizarTela();
+        carregarSugestoes();
+    };
+
+    function carregarSugestoes() {
+        const datalist = document.getElementById('listaCredores');
+        datalist.innerHTML = '';
+        bancoCredores.sort().forEach(c => {
+            const option = document.createElement('option');
+            option.value = c;
+            datalist.appendChild(option);
+        });
+    }
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const credorNome = document.getElementById('credor').value.trim();
+        const dados = {
+            credor: credorNome,
+            lotacao: document.getElementById('lotacao').value,
+            valor: parseFloat(document.getElementById('valor').value),
+            recurso: document.getElementById('recurso').value,
+            obs: document.getElementById('obs').value || "-"
+        };
+
+        // Salva novo credor no "banco de dados" se não existir
+        if (!bancoCredores.includes(credorNome)) {
+            bancoCredores.push(credorNome);
+            localStorage.setItem('banco_credores', JSON.stringify(bancoCredores));
+            carregarSugestoes();
+        }
+
+        const idx = document.getElementById('editIndex').value;
+        if (idx === "-1") {
+            pagamentos.push(dados);
+        } else {
+            pagamentos[idx] = dados;
+            document.getElementById('editIndex').value = "-1";
+            document.getElementById('mainBtn').innerText = "Adicionar à Lista";
+            document.getElementById('mainBtn').style.background = "var(--success)";
+        }
+
+        salvarLocal();
+        form.reset();
+        atualizarTela();
+    });
+
+    function salvarLocal() {
+        localStorage.setItem('pagamentos_cha_preta', JSON.stringify(pagamentos));
+    }
+
+    function limparTudo() {
+        if(confirm("Isso apagará todos os dados da tabela atual. O banco de credores continuará salvo. Deseja continuar?")) {
+            pagamentos = [];
+            salvarLocal();
+            atualizarTela();
+        }
+    }
+
+    function formatarMoeda(v) {
+        return v.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' });
+    }
+
+    function atualizarTela() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        let totalGeral = 0, porRec = {}, porLot = {};
+
+        pagamentos.forEach((p, i) => {
+            totalGeral += p.valor;
+            porRec[p.recurso] = (porRec[p.recurso] || 0) + p.valor;
+            porLot[p.lotacao] = (porLot[p.lotacao] || 0) + p.valor;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${p.credor}</td>
+                <td>${p.lotacao}</td>
+                <td>${formatarMoeda(p.valor)}</td>
+                <td>${p.recurso}</td>
+                <td class="actions">
+                    <button class="edit-btn" onclick="editar(${i})">✎</button>
+                    <button class="del-btn" onclick="excluir(${i})">X</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('totalGeral').innerText = `Total Geral: ${formatarMoeda(totalGeral)}`;
+        document.getElementById('totalRecursos').innerHTML = '<strong>Por Recurso:</strong><br>' + Object.entries(porRec).map(([k,v]) => `${k}: ${formatarMoeda(v)}`).join('<br>');
+        document.getElementById('totalLotacao').innerHTML = '<strong>Por Lotação:</strong><br>' + Object.entries(porLot).map(([k,v]) => `${k}: ${formatarMoeda(v)}`).join('<br>');
+    }
+
+    function excluir(i) {
+        if(confirm("Remover item?")) { pagamentos.splice(i, 1); salvarLocal(); atualizarTela(); }
+    }
+
+    function editar(i) {
+        const p = pagamentos[i];
+        document.getElementById('credor').value = p.credor;
+        document.getElementById('lotacao').value = p.lotacao;
+        document.getElementById('valor').value = p.valor;
+        document.getElementById('recurso').value = p.recurso;
+        document.getElementById('obs').value = p.obs;
+        document.getElementById('editIndex').value = i;
+        document.getElementById('mainBtn').innerText = "Atualizar Dados";
+        document.getElementById('mainBtn').style.background = "var(--warning)";
+    }
+
+    function gerarPDF() {
+        if(pagamentos.length === 0) return alert("Lista vazia!");
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const dataHoje = new Date().toLocaleDateString('pt-br');
+        const numRec = Math.floor(Math.random() * 90000) + 10000;
+
+        doc.setFontSize(12); doc.setFont(undefined, 'bold');
+        doc.text("Prefeitura Municipal de Chã Preta/AL", 105, 10, { align: "center" });
+        doc.setFontSize(9); doc.setFont(undefined, 'normal');
+        doc.text("Secretaria Municipal de Finanças", 105, 15, { align: "center" });
+        doc.setFontSize(12); doc.text("Relatório de Pagamentos", 105, 23, { align: "center" });
+        doc.setFontSize(8); doc.text(`Gerado em: ${dataHoje}`, 105, 27, { align: "center" });
+
+        doc.autoTable({
+            startY: 32,
+            head: [['Credor', 'Lotação', 'Valor', 'Recurso', 'OBS']],
+            body: pagamentos.map(p => [p.credor, p.lotacao, formatarMoeda(p.valor), p.recurso, p.obs]),
+            theme: 'grid',
+            styles: { fontSize: 7.5, cellPadding: 0.6, rowHeight: 4 },
+            headStyles: { fillColor: [44, 62, 80] },
+            margin: { bottom: 20 }
+        });
+
+        let finalY = doc.lastAutoTable.finalY + 8;
+        if (finalY > 240) { doc.addPage(); finalY = 20; }
+        doc.setFontSize(9); doc.setFont(undefined, 'bold');
+        doc.text("TOTALIZAÇÕES DO RELATÓRIO", 14, finalY);
+        finalY += 6;
+        doc.text(`TOTAL GERAL: ${formatarMoeda(pagamentos.reduce((acc,p)=>acc+p.valor,0))}`, 14, finalY);
+
+        let colRecY = finalY + 6;
+        doc.text("POR RECURSO:", 14, colRecY);
+        doc.setFont(undefined, 'normal');
+        let rMap = {}; pagamentos.forEach(p => rMap[p.recurso] = (rMap[p.recurso] || 0) + p.valor);
+        Object.entries(rMap).forEach(([k,v]) => { colRecY += 4.5; doc.text(`- ${k}: ${formatarMoeda(v)}`, 16, colRecY); });
+
+        let colLotY = finalY + 6;
+        doc.setFont(undefined, 'bold');
+        doc.text("POR LOTAÇÃO:", 110, colLotY);
+        doc.setFont(undefined, 'normal');
+        let lMap = {}; pagamentos.forEach(p => lMap[p.lotacao] = (lMap[p.lotacao] || 0) + p.valor);
+        Object.entries(lMap).forEach(([k,v]) => { colLotY += 4.5; if (colLotY > 280) { doc.addPage(); colLotY = 20; } doc.text(`- ${k}: ${formatarMoeda(v)}`, 112, colLotY); });
+
+        const paginas = doc.internal.getNumberOfPages();
+        for(let i = 1; i <= paginas; i++) { doc.setPage(i); doc.setFontSize(7.5); doc.text(`Secretaria de Finanças - ${dataHoje} | Rec:${numRec} | Pág ${i}/${paginas}`, 14, 292); }
+        doc.save(`Relatorio_ChãPreta_${dataHoje}.pdf`);
+    }
+</script>
+</body>
+</html>
