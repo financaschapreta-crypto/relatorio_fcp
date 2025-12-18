@@ -69,6 +69,7 @@
                         <option value="Sec. Esporte">Sec. Esporte</option>
                         <option value="Sec. Finanças">Sec. Finanças</option>
                         <option value="Sec. Governo">Sec. Governo</option>
+                        <option value="Sec. Infraestrutura">Sec. Infraestrutura</option>
                         <option value="Sec. Saúde">Sec. Saúde</option>
                     </optgroup>
                     <optgroup label="Outros Órgãos">
@@ -168,7 +169,6 @@
             obs: document.getElementById('obs').value || "-"
         };
 
-        // Salva novo credor no "banco de dados" se não existir
         if (!bancoCredores.includes(credorNome)) {
             bancoCredores.push(credorNome);
             localStorage.setItem('banco_credores', JSON.stringify(bancoCredores));
