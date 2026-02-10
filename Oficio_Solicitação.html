@@ -53,7 +53,6 @@
         .assinatura-box { margin-top: 40px; text-align: center; }
         .linha { border-top: 1px solid black; width: 280px; margin: 0 auto 5px; }
 
-        /* Rodapé de Identificação e Página */
         .page-footer { 
             display: none; 
             position: absolute; 
@@ -85,11 +84,14 @@
     <div class="secao">
         <h3>Histórico e Backup</h3>
         <div class="row">
-            <button onclick="salvarHistorico()" style="flex:1; background: var(--success); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Salvar Atual</button>
+            <button onclick="salvarHistorico()" style="flex:1.5; background: var(--success); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Salvar Atual</button>
             <button onclick="exportarBackup()" style="flex:1; background: var(--primary); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Backup</button>
+            <button onclick="document.getElementById('input_backup').click()" style="flex:1; background: var(--info); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Carregar</button>
         </div>
+        <input type="file" id="input_backup" style="display:none" accept=".json" onchange="importarBackup(this)">
+        
         <div id="lista_historico" style="margin-top:10px; max-height: 120px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; background: #fff;">
-            </div>
+        </div>
     </div>
 
     <div class="secao">
@@ -158,12 +160,13 @@
         <input type="text" id="cred_nome" oninput="update()" placeholder="Nome do Credor">
         <input type="text" id="cred_doc" oninput="update()" placeholder="CPF ou CNPJ">
         
-        <label>TEXTO FINAL:</label>
+        <label>FRASE DE OBSERVAÇÃO (OPCIONAL):</label>
         <select id="tipo_texto_final" onchange="toggleTextoManual()">
-            <option value="padrao">Padrão</option>
-            <option value="manual">Manual</option>
+            <option value="padrao">Padrão (Vale salientar...)</option>
+            <option value="manual">Personalizada (Digitar abaixo)</option>
+            <option value="nenhum">Nenhuma (Ocultar frase)</option>
         </select>
-        <textarea id="texto_final_manual" style="display:none; height:60px;" oninput="update()"></textarea>
+        <textarea id="texto_final_manual" style="display:none; height:60px;" oninput="update()" placeholder="Digite sua frase personalizada aqui..."></textarea>
 
         <div style="margin-top:10px;">
             <label style="font-size:11px"><input type="checkbox" id="tem_ref" onchange="update()" checked> Incluir Referência?</label>
@@ -252,14 +255,13 @@
     let itens = [];
     document.getElementById('data_input').valueAsDate = new Date();
 
-    // Nota: Certifique-se que o arquivo cp.png esteja na mesma pasta do HTML.
     function checkOutra(sel) {
         document.getElementById('it_un_manual').style.display = (sel.value === 'OUTRA') ? 'block' : 'none';
     }
 
     function toggleTextoManual() {
-        const manual = document.getElementById('tipo_texto_final').value === 'manual';
-        document.getElementById('texto_final_manual').style.display = manual ? 'block' : 'none';
+        const opcao = document.getElementById('tipo_texto_final').value;
+        document.getElementById('texto_final_manual').style.display = (opcao === 'manual') ? 'block' : 'none';
         update();
     }
 
@@ -302,7 +304,8 @@
     }
 
     function update() {
-        const d = new Date(document.getElementById('data_input').value + 'T12:00:00');
+        const dStr = document.getElementById('data_input').value;
+        const d = dStr ? new Date(dStr + 'T12:00:00') : new Date();
         const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const numSeq = document.getElementById('num_seq').value || "000";
         const sec = document.getElementById('sec_input').value;
@@ -339,10 +342,15 @@
             listaPainel.innerHTML += `<div class="item-lista"><span>${it.num}. ${it.desc.substring(0,15)}</span><div><button class="btn-acao" style="background:#007bff" onclick="editItem(${idx})">Edit</button><button class="btn-acao" style="background:var(--danger)" onclick="deleteItem(${idx})">X</button></div></div>`;
         });
 
-        if(document.getElementById('tipo_texto_final').value === 'manual') {
-            document.getElementById('view_final_desc').innerText = document.getElementById('texto_final_manual').value;
+        const viewFinalDesc = document.getElementById('view_final_desc');
+        const modoFrase = document.getElementById('tipo_texto_final').value;
+        
+        if(modoFrase === 'nenhum') {
+            viewFinalDesc.innerHTML = "";
+        } else if(modoFrase === 'manual') {
+            viewFinalDesc.innerText = document.getElementById('texto_final_manual').value;
         } else {
-            document.getElementById('view_final_desc').innerHTML = `Vale Salientar que os itens acima mencionados são de suma importância para o bom funcionamento da Secretaria Municipal de ${formatTitle(sec)}, como também que será através da pessoa física/jurídica:`;
+            viewFinalDesc.innerHTML = `Vale Salientar que os itens acima mencionados são de suma importância para o bom funcionamento da Secretaria Municipal de ${formatTitle(sec)}, como também que será através da pessoa física/jurídica:`;
         }
 
         document.getElementById('view_cred_n').innerText = document.getElementById('cred_nome').value;
@@ -368,7 +376,10 @@
             ref_t: document.getElementById('ref_tipo').value,
             ref_v: document.getElementById('ref_txt').value,
             ass_n: document.getElementById('ass_nome').value,
-            ass_p: document.getElementById('ass_port').value
+            ass_p: document.getElementById('ass_port').value,
+            modoFrase: document.getElementById('tipo_texto_final').value,
+            textoFrase: document.getElementById('texto_final_manual').value,
+            tipo_oficio: document.getElementById('tipo_oficio').value
         };
         let hist = JSON.parse(localStorage.getItem('oficios_db') || '{}');
         hist[id] = dados;
@@ -395,17 +406,22 @@
     function carregarOficio(key) {
         const hist = JSON.parse(localStorage.getItem('oficios_db') || '{}');
         const d = hist[key];
+        if(!d) return;
         document.getElementById('sec_input').value = d.sec;
         document.getElementById('data_input').value = d.data;
         document.getElementById('num_seq').value = d.num;
-        document.getElementById('destinacao_input').value = d.dest;
-        document.getElementById('cred_nome').value = d.cred;
-        document.getElementById('cred_doc').value = d.doc;
-        document.getElementById('ref_tipo').value = d.ref_t;
-        document.getElementById('ref_txt').value = d.ref_v;
-        document.getElementById('ass_nome').value = d.ass_n;
-        document.getElementById('ass_port').value = d.ass_p;
-        itens = d.itens;
+        document.getElementById('destinacao_input').value = d.dest || "";
+        document.getElementById('cred_nome').value = d.cred || "";
+        document.getElementById('cred_doc').value = d.doc || "";
+        document.getElementById('ref_tipo').value = d.ref_t || "";
+        document.getElementById('ref_txt').value = d.ref_v || "";
+        document.getElementById('ass_nome').value = d.ass_n || "";
+        document.getElementById('ass_port').value = d.ass_p || "";
+        if(d.tipo_oficio) document.getElementById('tipo_oficio').value = d.tipo_oficio;
+        if(d.modoFrase) document.getElementById('tipo_texto_final').value = d.modoFrase;
+        if(d.textoFrase) document.getElementById('texto_final_manual').value = d.textoFrase;
+        itens = d.itens || [];
+        toggleTextoManual();
         update();
     }
 
@@ -420,11 +436,34 @@
 
     function exportarBackup() {
         const data = localStorage.getItem('oficios_db');
+        if(!data || data === '{}') return alert("Não há dados para exportar.");
         const blob = new Blob([data], {type: 'application/json'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `backup_oficios_cha_preta_${new Date().toLocaleDateString()}.json`;
+        a.download = `backup_oficios_cha_preta_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
         a.click();
+    }
+
+    function importarBackup(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importado = JSON.parse(e.target.result);
+                if(confirm("Deseja mesclar o backup com os dados atuais? (Os registros com o mesmo número serão substituídos)")) {
+                    let atual = JSON.parse(localStorage.getItem('oficios_db') || '{}');
+                    let novoDb = { ...atual, ...importado };
+                    localStorage.setItem('oficios_db', JSON.stringify(novoDb));
+                    renderHistorico();
+                    alert("Backup carregado com sucesso!");
+                }
+            } catch(err) {
+                alert("Erro ao ler o arquivo de backup. Verifique se o arquivo é um .json válido.");
+            }
+        };
+        reader.readAsText(file);
+        input.value = ""; // Limpa o input para permitir carregar o mesmo arquivo novamente se necessário
     }
 
     window.onload = renderHistorico;
