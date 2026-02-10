@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGO - Gestão Finanças Obras</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --primary: #1a2a3a; --secondary: #34495e; --accent: #27ae60; --bg: #f0f2f5; --warning: #f1c40f; --danger: #e74c3c; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; background: var(--bg); }
+
+        /* Login */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .login-box input { display: block; width: 200px; margin: 10px auto; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+
+        /* Layout */
+        .main-wrapper { display: flex; height: 100vh; overflow: hidden; visibility: hidden; }
+        .sidebar { width: 350px; background: white; padding: 20px; border-right: 2px solid #ddd; overflow-y: auto; }
+        .content { flex: 1; padding: 25px; overflow-y: auto; background: white; }
+
+        h2, h3 { color: var(--primary); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+        .field { margin-bottom: 12px; }
+        label { display: block; font-weight: 600; font-size: 0.85em; margin-bottom: 4px; color: #555; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        /* Filtros */
+        .filter-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .filter-section h4 { grid-column: 1/-1; margin: 0 0 5px 0; font-size: 0.8em; color: #888; }
+
+        /* Botões */
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        button { padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8em; transition: 0.2s; }
+        
+        .btn-save { background: var(--accent); color: white; grid-column: span 2; font-size: 1em; margin-bottom: 5px; }
+        .btn-update { background: var(--warning); color: #000; grid-column: span 2; font-size: 1em; margin-bottom: 5px; display: none; }
+        .btn-cancel { background: #eee; color: #333; grid-column: span 2; margin-bottom: 15px; display: none; }
+        
+        .btn-pdf { background: #e67e22; color: white; }
+        .btn-img { background: #3498db; color: white; }
+        .btn-bkp { background: #7f8c8d; color: white; }
+
+        /* Tabela */
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th { background: #f8f9fa; color: var(--primary); border: 1px solid #dee2e6; padding: 10px; text-align: left; }
+        td { border: 1px solid #dee2e6; padding: 10px; vertical-align: top; }
+        
+        .total-card { background: var(--primary); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .total-val { font-size: 1.8em; font-weight: bold; color: #2ecc71; }
+
+        .btn-action { padding: 4px 8px; font-size: 0.75em; margin-right: 2px; }
+        .edit-row { background-color: #fff9e6 !important; }
+
+        @media print {
+            .sidebar, .no-print, .filter-section { display: none !important; }
+            .main-wrapper { visibility: visible !important; display: block; }
+            .content { width: 100%; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <div class="login-box">
+        <h3>SGO - Login</h3>
+        <input type="text" id="userInput" placeholder="Usuário">
+        <input type="password" id="passInput" placeholder="Senha">
+        <button onclick="verificarLogin()" style="background: var(--accent); color:white; width: 100%">Entrar</button>
+        <p id="erroLogin" style="color:red; font-size: 0.8em; display:none;">Credenciais incorretas!</p>
+    </div>
+</div>
+
+<div class="main-wrapper" id="mainApp">
+    <div class="sidebar no-print">
+        <h2 id="tituloForm">Cadastro</h2>
+        <input type="hidden" id="editIndex" value="-1">
+        
+        <div class="field">
+            <label>Empresa</label>
+            <input type="text" id="empresa" list="listaEmpresas">
+            <datalist id="listaEmpresas"></datalist>
+        </div>
+        <div class="field">
+            <label>Obra</label>
+            <input type="text" id="obra" list="listaObras">
+            <datalist id="listaObras"></datalist>
+        </div>
+        <div class="field">
+            <label>Classificação</label>
+            <select id="classificacao" onchange="toggleOutro()">
+                <option value="Escolas">Escolas</option>
+                <option value="Pavimentação">Pavimentação</option>
+                <option value="Construção">Construção</option>
+                <option value="Reforma Geral">Reforma Geral</option>
+                <option value="Pintura">Pintura</option>
+                <option value="Retelhe">Retelhe</option>
+                <option value="Outro">Outro...</option>
+            </select>
+            <input type="text" id="outroTipo" placeholder="Especifique" style="display:none; margin-top:5px;">
+        </div>
+        <div class="field">
+            <label>Data Pagamento</label>
+            <input type="date" id="dataPagamento">
+        </div>
+        <div class="field">
+            <label>Valor (R$)</label>
+            <input type="number" id="valor" step="0.01">
+        </div>
+        <div class="field">
+            <label>Empenho</label>
+            <input type="text" id="empenho">
+        </div>
+        <div class="field">
+            <label>Conta</label>
+            <input type="text" id="conta">
+        </div>
+        <div class="field">
+            <label>Observações</label>
+            <textarea id="obs" rows="3"></textarea>
+        </div>
+
+        <button id="btnSalvar" class="btn-save" onclick="salvarObra()">SALVAR REGISTRO</button>
+        <button id="btnAtualizar" class="btn-update" onclick="salvarObra()">ATUALIZAR DADOS</button>
+        <button id="btnCancelar" class="btn-cancel" onclick="limparFormulario()">Cancelar Edição</button>
+        
+        <div class="btn-group">
+            <button class="btn-pdf" onclick="window.print()">Gerar PDF</button>
+            <button class="btn-img" onclick="gerarImagem()">Imagem</button>
+            <button class="btn-bkp" onclick="fazerBackup()">Backup</button>
+            <button class="btn-bkp" onclick="document.getElementById('fileInput').click()">Importar</button>
+        </div>
+        <input type="file" id="fileInput" style="display:none" onchange="importarBackup(event)">
+    </div>
+
+    <div class="content">
+        <div id="areaRelatorio">
+            <h3>Relatório Detalhado</h3>
+            
+            <div class="filter-section no-print">
+                <h4>Filtros de Busca</h4>
+                <input type="text" id="fEmpresa" onkeyup="renderizarTabela()" placeholder="Empresa...">
+                <input type="text" id="fObra" onkeyup="renderizarTabela()" placeholder="Obra...">
+                <input type="date" id="fDataInicio" onchange="renderizarTabela()">
+                <input type="date" id="fDataFim" onchange="renderizarTabela()">
+            </div>
+
+            <div class="total-card">
+                <div>
+                    <span>TOTAL FILTRADO</span><br>
+                    <span class="total-val" id="totalGeral">R$ 0,00</span>
+                </div>
+                <div style="text-align: right; font-size: 0.8em; opacity: 0.8;">
+                    Filtros ativos afetam o cálculo do PDF/Imagem.
+                </div>
+            </div>
+
+            <table id="tabelaObras">
+                <thead>
+                    <tr>
+                        <th>Empresa / Obra</th>
+                        <th>Tipo</th>
+                        <th>Data</th>
+                        <th>Valor</th>
+                        <th>Doc.</th>
+                        <th class="no-print">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoTabela"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function verificarLogin() {
+        if(document.getElementById('userInput').value === "financas" && document.getElementById('passInput').value === "2026") {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainApp').style.visibility = 'visible';
+            renderizarTabela();
+        } else { document.getElementById('erroLogin').style.display = 'block'; }
+    }
+
+    let obras = JSON.parse(localStorage.getItem('obras_municipais')) || [];
+
+    function toggleOutro() {
+        const select = document.getElementById('classificacao');
+        document.getElementById('outroTipo').style.display = (select.value === 'Outro') ? 'block' : 'none';
+    }
+
+    function salvarObra() {
+        const index = parseInt(document.getElementById('editIndex').value);
+        const tipo = document.getElementById('classificacao').value;
+        
+        const dataObra = {
+            empresa: document.getElementById('empresa').value.trim(),
+            obra: document.getElementById('obra').value.trim(),
+            classificacao: tipo === 'Outro' ? document.getElementById('outroTipo').value : tipo,
+            data: document.getElementById('dataPagamento').value,
+            valor: parseFloat(document.getElementById('valor').value) || 0,
+            empenho: document.getElementById('empenho').value,
+            conta: document.getElementById('conta').value,
+            obs: document.getElementById('obs').value
+        };
+
+        if(!dataObra.empresa || !dataObra.obra || !dataObra.data) {
+            alert("Preencha os campos obrigatórios!"); return;
+        }
+
+        if(index === -1) {
+            obras.push(dataObra);
+        } else {
+            obras[index] = dataObra;
+        }
+
+        localStorage.setItem('obras_municipais', JSON.stringify(obras));
+        limparFormulario();
+        renderizarTabela();
+    }
+
+    function renderizarTabela() {
+        const corpo = document.getElementById('corpoTabela');
+        const fEmp = document.getElementById('fEmpresa').value.toLowerCase();
+        const fObr = document.getElementById('fObra').value.toLowerCase();
+        const fDI = document.getElementById('fDataInicio').value;
+        const fDF = document.getElementById('fDataFim').value;
+        const editIdx = parseInt(document.getElementById('editIndex').value);
+        
+        corpo.innerHTML = '';
+        let total = 0;
+        const empSet = new Set();
+        const obrSet = new Set();
+
+        obras.forEach((item, i) => {
+            empSet.add(item.empresa);
+            obrSet.add(item.obra);
+
+            if( (item.empresa.toLowerCase().includes(fEmp)) && 
+                (item.obra.toLowerCase().includes(fObr)) && 
+                (!fDI || item.data >= fDI) && (!fDF || item.data <= fDF) ) {
+                
+                total += item.valor;
+                const isEditing = (i === editIdx);
+                
+                corpo.innerHTML += `
+                    <tr class="${isEditing ? 'edit-row' : ''}">
+                        <td><strong>${item.empresa}</strong><br><small>${item.obra}</small></td>
+                        <td>${item.classificacao}</td>
+                        <td>${item.data.split('-').reverse().join('/')}</td>
+                        <td><b>${item.valor.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</b></td>
+                        <td><small>E: ${item.empenho}<br>C: ${item.conta}</small></td>
+                        <td class="no-print">
+                            <button class="btn-action" style="background:var(--warning)" onclick="carregarParaEditar(${i})">✏️</button>
+                            <button class="btn-action" style="background:var(--danger); color:white" onclick="excluirObra(${i})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }
+        });
+
+        document.getElementById('totalGeral').innerText = total.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        atualizarSugestoes(empSet, obrSet);
+    }
+
+    function carregarParaEditar(i) {
+        const item = obras[i];
+        document.getElementById('editIndex').value = i;
+        document.getElementById('empresa').value = item.empresa;
+        document.getElementById('obra').value = item.obra;
+        document.getElementById('dataPagamento').value = item.data;
+        document.getElementById('valor').value = item.valor;
+        document.getElementById('empenho').value = item.empenho;
+        document.getElementById('conta').value = item.conta;
+        document.getElementById('obs').value = item.obs;
+        
+        // Ajuste de Classificação
+        const sel = document.getElementById('classificacao');
+        const opcoes = Array.from(sel.options).map(o => o.value);
+        if(opcoes.includes(item.classificacao)) {
+            sel.value = item.classificacao;
+            document.getElementById('outroTipo').style.display = 'none';
+        } else {
+            sel.value = 'Outro';
+            document.getElementById('outroTipo').value = item.classificacao;
+            document.getElementById('outroTipo').style.display = 'block';
+        }
+
+        // Interface
+        document.getElementById('tituloForm').innerText = "Editando Registro";
+        document.getElementById('btnSalvar').style.display = 'none';
+        document.getElementById('btnAtualizar').style.display = 'block';
+        document.getElementById('btnCancelar').style.display = 'block';
+        renderizarTabela();
+    }
+
+    function excluirObra(i) {
+        if(confirm("Deseja realmente apagar este registro permanentemente?")) {
+            obras.splice(i, 1);
+            localStorage.setItem('obras_municipais', JSON.stringify(obras));
+            renderizarTabela();
+        }
+    }
+
+    function limparFormulario() {
+        document.querySelectorAll('.sidebar input, .sidebar textarea').forEach(i => i.value = '');
+        document.getElementById('editIndex').value = "-1";
+        document.getElementById('classificacao').value = 'Escolas';
+        document.getElementById('outroTipo').style.display = 'none';
+        document.getElementById('tituloForm').innerText = "Cadastro";
+        document.getElementById('btnSalvar').style.display = 'block';
+        document.getElementById('btnAtualizar').style.display = 'none';
+        document.getElementById('btnCancelar').style.display = 'none';
+        renderizarTabela();
+    }
+
+    function atualizarSugestoes(empresas, obras) {
+        const dlE = document.getElementById('listaEmpresas');
+        const dlO = document.getElementById('listaObras');
+        dlE.innerHTML = ''; dlO.innerHTML = '';
+        empresas.forEach(e => dlE.innerHTML += `<option value="${e}">`);
+        obras.forEach(o => dlO.innerHTML += `<option value="${o}">`);
+    }
+
+    function gerarImagem() {
+        html2canvas(document.querySelector("#areaRelatorio")).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'relatorio.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+    }
+
+    function fazerBackup() {
+        const blob = new Blob([JSON.stringify(obras)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `backup_obras.json`;
+        a.click();
+    }
+
+    function importarBackup(event) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            obras = JSON.parse(e.target.result);
+            localStorage.setItem('obras_municipais', JSON.stringify(obras));
+            renderizarTabela();
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+</script>
+</body>
+</html>
