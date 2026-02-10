@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerador de Ofícios Pro - Chã Preta/AL</title>
+    <style>
+        :root { --primary: #2c3e50; --bg: #f4f7f6; --accent: #e67e22; --success: #28a745; --danger: #dc3545; --info: #17a2b8; }
+        * { box-sizing: border-box; }
+        
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: var(--bg); min-height: 100vh; }
+        
+        /* Painel de Controle Lateral */
+        .painel-controle { width: 35%; padding: 20px; border-right: 1px solid #ccc; background: #fff; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 10; }
+        .visualizacao { width: 65%; padding: 20px; background: #525659; display: flex; flex-direction: column; align-items: center; overflow-y: auto; }
+        
+        .secao { background: #f9f9f9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #eee; }
+        h3 { margin-top: 0; font-size: 14px; color: var(--primary); border-bottom: 2px solid #ddd; padding-bottom: 5px; text-transform: uppercase; }
+        label { display: block; font-size: 10px; font-weight: bold; color: #666; margin-bottom: 3px; }
+        input, select, textarea { width: 100%; padding: 7px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; margin-bottom: 5px; }
+        
+        .row { display: flex; gap: 8px; margin-bottom: 8px; }
+        
+        /* Lista de itens e Histórico */
+        .item-lista, .historico-item { font-size: 11px; background: #fff; padding: 5px; border: 1px solid #ddd; margin-bottom: 4px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-acao { border: none; padding: 4px 8px; cursor: pointer; border-radius: 3px; color: white; font-size: 10px; margin-left: 2px; }
+
+        /* Configuração da Folha A4 */
+        .folha-a4 { 
+            width: 210mm; min-height: 296mm; padding: 2cm; 
+            background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); 
+            margin-bottom: 20px; color: black; position: relative;
+            display: flex; flex-direction: column;
+        }
+
+        .cabecalho { text-align: center; margin-bottom: 20px; }
+        #logo_img { max-height: 70px; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto; }
+        .cabecalho h2 { font-size: 14pt; margin: 0; font-weight: bold; line-height: 1.1; }
+        .cabecalho p { font-size: 9pt; margin: 2px 0; }
+        
+        .data-doc { text-align: right; margin-bottom: 15px; font-size: 12pt; }
+        .num-doc { font-weight: bold; margin: 10px 0; font-size: 12pt; }
+        .assunto-doc { font-weight: bold; text-decoration: underline; margin: 10px 0; font-size: 12pt; }
+        .corpo-doc { text-align: justify; text-indent: 50px; line-height: 1.4; font-size: 12pt; margin-bottom: 10px; }
+        
+        #view_destinacao { margin: 15px 0 5px 0; font-weight: bold; font-size: 11pt; border-left: 3px solid #000; padding-left: 10px; }
+
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; table-layout: fixed; }
+        table, th, td { border: 1px solid black; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        th, td { padding: 6px; text-align: center; font-size: 10pt; word-wrap: break-word; }
+        
+        .bloco-final { page-break-inside: avoid; margin-top: 20px; }
+        .assinatura-box { margin-top: 40px; text-align: center; }
+        .linha { border-top: 1px solid black; width: 280px; margin: 0 auto 5px; }
+
+        /* Rodapé de Identificação e Página */
+        .page-footer { 
+            display: none; 
+            position: absolute; 
+            bottom: 1cm; 
+            left: 2cm; 
+            right: 2cm; 
+            font-size: 8pt; 
+            color: #777; 
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+            justify-content: space-between;
+        }
+
+        @media print {
+            body { background: white; display: block; }
+            .painel-controle { display: none !important; }
+            .visualizacao { width: 100%; padding: 0; background: none; overflow: visible; }
+            .folha-a4 { box-shadow: none; width: 100%; padding: 2cm; margin: 0; height: 296mm; page-break-after: avoid; }
+            .page-footer { display: flex; }
+            @page { size: A4; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="painel-controle">
+    <center><h2 style="color: var(--primary); font-size: 18px;">GERADOR DE OFÍCIOS PRO</h2></center>
+    
+    <div class="secao">
+        <h3>Histórico e Backup</h3>
+        <div class="row">
+            <button onclick="salvarHistorico()" style="flex:1; background: var(--success); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Salvar Atual</button>
+            <button onclick="exportarBackup()" style="flex:1; background: var(--primary); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Backup</button>
+        </div>
+        <div id="lista_historico" style="margin-top:10px; max-height: 120px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; background: #fff;">
+            </div>
+    </div>
+
+    <div class="secao">
+        <h3>Tipo de Documento</h3>
+        <select id="tipo_oficio" onchange="update()">
+            <option value="compra">Solicitação de Compra/Serviços</option>
+            <option value="licitacao">Abertura de Processo Licitatório</option>
+        </select>
+    </div>
+
+    <div class="secao">
+        <h3>Identificação e Destino</h3>
+        <label>SECRETARIA:</label>
+        <select id="sec_input" onchange="update()">
+            <option value="ADMINISTRAÇÃO, PLANEJAMENTO E RECURSOS HUMANOS">ADMINISTRAÇÃO</option>
+            <option value="AGRICULTURA">AGRICULTURA</option>
+            <option value="INFRAESTRUTURA">INFRAESTRUTURA</option>
+            <option value="ESPORTE">ESPORTE</option>
+            <option value="CULTURA, TURISMO E MEIO AMBIENTE">CULTURA/TURISMO</option>
+            <option value="GOVERNO">GOVERNO</option>
+            <option value="EDUCAÇÃO">EDUCAÇÃO</option>
+            <option value="ASSISTÊNCIA SOCIAL">ASSISTÊNCIA SOCIAL</option>
+            <option value="SAÚDE">SAÚDE</option>
+            <option value="FINANÇAS">FINANÇAS</option>
+        </select>
+        
+        <div class="row" style="margin-top:8px">
+            <div style="flex:2"><label>DATA:</label><input type="date" id="data_input" onchange="update()"></div>
+            <div style="flex:1"><label>Nº SEQ:</label><input type="text" id="num_seq" placeholder="001" oninput="update()"></div>
+        </div>
+
+        <label>DESTINAÇÃO:</label>
+        <input type="text" id="destinacao_input" placeholder="Ex: UBS Chã Preta..." oninput="update()">
+    </div>
+
+    <div class="secao">
+        <h3>Itens da Tabela</h3>
+        <input type="hidden" id="edit_index" value="-1">
+        <div class="row">
+            <div style="width: 25%"><label>Nº ITEM:</label><input type="text" id="it_num_man"></div>
+            <div style="width: 75%"><label>DESCRIÇÃO:</label><input type="text" id="it_desc"></div>
+        </div>
+        <div class="row">
+            <div style="flex:1"><label>UNIDADE:</label>
+                <select id="it_un" onchange="checkOutra(this)">
+                    <option value="Unidade">Unidade</option>
+                    <option value="Kg">Kg</option>
+                    <option value="Pacote">Pacote</option>
+                    <option value="Fardo">Fardo</option>
+                    <option value="Litro">Litro</option>
+                    <option value="Balde">Balde</option>
+                    <option value="OUTRA">Outra...</option>
+                </select>
+            </div>
+            <div style="width: 70px"><label>QTD:</label><input type="number" id="it_qtd" value="1"></div>
+            <div style="display: flex; align-items: flex-end;">
+                <button id="btn_add" onclick="addItem()" style="background:var(--success); color:white; border:none; border-radius:4px; height:32px; padding:0 15px; cursor:pointer; font-weight:bold;">+</button>
+            </div>
+        </div>
+        <input type="text" id="it_un_manual" placeholder="Qual unidade?" style="display:none; margin-top:5px">
+        <div id="lista_itens_painel" style="margin-top:10px; max-height: 120px; overflow-y: auto;"></div>
+    </div>
+
+    <div class="secao">
+        <h3>Credor / Referência</h3>
+        <input type="text" id="cred_nome" oninput="update()" placeholder="Nome do Credor">
+        <input type="text" id="cred_doc" oninput="update()" placeholder="CPF ou CNPJ">
+        
+        <label>TEXTO FINAL:</label>
+        <select id="tipo_texto_final" onchange="toggleTextoManual()">
+            <option value="padrao">Padrão</option>
+            <option value="manual">Manual</option>
+        </select>
+        <textarea id="texto_final_manual" style="display:none; height:60px;" oninput="update()"></textarea>
+
+        <div style="margin-top:10px;">
+            <label style="font-size:11px"><input type="checkbox" id="tem_ref" onchange="update()" checked> Incluir Referência?</label>
+            <div id="ref_campos">
+                <select id="ref_tipo" onchange="update()">
+                    <option value="Pregão Eletrônico nº ">Pregão Eletrônico</option>
+                    <option value="Dispensa de Licitação nº ">Dispensa</option>
+                    <option value="Termo de Credênciamento nº ">Credenciamento</option>
+                    <option value="Adesão Nº ">Adesão</option>
+                    <option value="">Personalizado</option>
+                </select>
+                <input type="text" id="ref_txt" oninput="update()" placeholder="Número/Ano">
+            </div>
+        </div>
+    </div>
+
+    <div class="secao">
+        <h3>Assinatura</h3>
+        <input type="text" id="ass_nome" oninput="update()" placeholder="Nome do Secretário">
+        <input type="text" id="ass_port" oninput="update()" placeholder="Portaria (ex: 001/2026)">
+    </div>
+
+    <button onclick="window.print()" style="width:100%; padding:18px; background: var(--accent); color:white; border:none; font-weight:bold; border-radius:5px; cursor:pointer; font-size: 16px;">IMPRIMIR / GERAR PDF</button>
+</div>
+
+<div class="visualizacao">
+    <div class="folha-a4" id="documento">
+        <div class="cabecalho">
+            <img id="logo_img" src="cp.png" alt="Logo">
+            <h2>ESTADO DE ALAGOAS</h2>
+            <h2>PREFEITURA MUNICIPAL DE CHÃ PRETA/AL</h2>
+            <p>CNPJ 12.334.629/0001-57</p>
+            <h2 id="view_sec_topo" style="margin-top:8px; text-decoration: underline;"></h2>
+        </div>
+
+        <div class="data-doc" id="view_data"></div>
+        <div class="num-doc">OFÍCIO Nº <span id="view_num"></span></div>
+        
+        <div id="view_dest" style="margin-bottom:15px"></div>
+        <div class="assunto-doc">ASSUNTO: <span id="view_assunto"></span></div>
+
+        <div class="corpo-doc" id="view_texto_base"></div>
+        <div id="view_destinacao"></div>
+
+        <table id="view_tab">
+            <thead>
+                <tr>
+                    <th width="10%">ITEM</th>
+                    <th width="55%">DESCRIÇÃO DOS PRODUTOS / SERVIÇOS</th>
+                    <th width="20%">UNIDADE</th>
+                    <th width="15%">QTD</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div class="bloco-final">
+            <div class="corpo-doc" id="view_final_desc"></div>
+
+            <div style="margin: 5px 0 0 50px; font-size: 11pt; line-height: 1.3">
+                <strong>CREDOR(A):</strong> <span id="view_cred_n"></span><br>
+                <strong>CPF/CNPJ:</strong> <span id="view_cred_d"></span><br>
+                <div id="view_ref_box"><strong>REFERÊNCIA:</strong> <span id="view_ref_t"></span></div>
+            </div>
+
+            <div class="corpo-doc" style="margin-top:20px">
+                Ao ensejo, reitero a Vossa Excelência expressões de elevada estima e distinta consideração.
+            </div>
+
+            <div class="assinatura-box">
+                <div class="linha"></div>
+                <strong id="view_ass_n"></strong><br>
+                Secretário(a) Municipal de <span id="view_ass_s"></span><br>
+                <span id="view_ass_p"></span>
+            </div>
+        </div>
+
+        <div class="page-footer">
+            <div id="view_id_footer">Oficio_Abrev_000/2026</div>
+            <div>Página 1 de 1</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let itens = [];
+    document.getElementById('data_input').valueAsDate = new Date();
+
+    // Nota: Certifique-se que o arquivo cp.png esteja na mesma pasta do HTML.
+    function checkOutra(sel) {
+        document.getElementById('it_un_manual').style.display = (sel.value === 'OUTRA') ? 'block' : 'none';
+    }
+
+    function toggleTextoManual() {
+        const manual = document.getElementById('tipo_texto_final').value === 'manual';
+        document.getElementById('texto_final_manual').style.display = manual ? 'block' : 'none';
+        update();
+    }
+
+    function addItem() {
+        const desc = document.getElementById('it_desc').value;
+        if(!desc) return;
+        let un = document.getElementById('it_un').value;
+        if(un === 'OUTRA') un = document.getElementById('it_un_manual').value;
+        
+        const novoItem = { num: document.getElementById('it_num_man').value || (itens.length + 1), desc: desc, un: un, qtd: document.getElementById('it_qtd').value };
+        const editIdx = parseInt(document.getElementById('edit_index').value);
+        
+        if(editIdx > -1) { itens[editIdx] = novoItem; document.getElementById('edit_index').value = "-1"; document.getElementById('btn_add').innerText = "+"; } 
+        else { itens.push(novoItem); }
+
+        document.getElementById('it_desc').value = "";
+        document.getElementById('it_qtd').value = "1";
+        update();
+    }
+
+    function editItem(index) {
+        const it = itens[index];
+        document.getElementById('it_num_man').value = it.num;
+        document.getElementById('it_desc').value = it.desc;
+        document.getElementById('it_qtd').value = it.qtd;
+        document.getElementById('edit_index').value = index;
+        document.getElementById('btn_add').innerText = "OK";
+    }
+
+    function deleteItem(index) { itens.splice(index, 1); update(); }
+
+    function getAbrev(sec) {
+        const abrevs = { "ADMINISTRAÇÃO, PLANEJAMENTO E RECURSOS HUMANOS": "SEAD", "AGRICULTURA": "SEAGRI", "INFRAESTRUTURA": "SEINFRA", "ESPORTE": "SEMEL", "CULTURA, TURISMO E MEIO AMBIENTE": "SECULT", "GOVERNO": "SEGOV", "EDUCAÇÃO": "SEMED", "ASSISTÊNCIA SOCIAL": "SEMAS", "SAÚDE": "SMS", "FINANÇAS": "SEFIN" };
+        return abrevs[sec] || "SEC";
+    }
+
+    function formatTitle(text) {
+        const exc = ['de', 'da', 'do', 'das', 'dos', 'e', 'o', 'a'];
+        return text.toLowerCase().split(' ').map((w, i) => (i > 0 && exc.includes(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+
+    function update() {
+        const d = new Date(document.getElementById('data_input').value + 'T12:00:00');
+        const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const numSeq = document.getElementById('num_seq').value || "000";
+        const sec = document.getElementById('sec_input').value;
+        const abrev = getAbrev(sec);
+        
+        const numComp = `${String(d.getDate()).padStart(2, '0')}${String(d.getMonth() + 1).padStart(2, '0')}-${numSeq}/${d.getFullYear()}`;
+        document.getElementById('view_data').innerText = `Chã Preta/AL, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+        document.getElementById('view_num').innerText = numComp;
+        
+        document.getElementById('view_id_footer').innerText = `Oficio_${abrev}_${numSeq}/${d.getFullYear()}`;
+
+        const tipo = document.getElementById('tipo_oficio').value;
+        document.getElementById('view_assunto').innerText = tipo === 'licitacao' ? "ABERTURA DE PROCESSO LICITATÓRIO" : "SOLICITAÇÃO DE COMPRA/SERVIÇOS";
+        document.getElementById('view_texto_base').innerHTML = tipo === 'licitacao' ? 
+            `Venho através deste, solicitar de Vossa Excelência a <strong>Abertura de Processo Licitatório</strong> para atendimento das necessidades desta secretaria...` : 
+            `Venho através deste, solicitar de Vossa Excelência a autorização para que seja providenciado a <strong>Compra/Serviço</strong>...`;
+
+        document.getElementById('view_destinacao').innerText = document.getElementById('destinacao_input').value ? "DESTINAÇÃO: " + document.getElementById('destinacao_input').value.toUpperCase() : "";
+        document.getElementById('view_sec_topo').innerText = "SECRETARIA MUNICIPAL DE " + sec;
+        document.getElementById('view_ass_s').innerText = formatTitle(sec);
+
+        const dest = document.getElementById('view_dest');
+        if(["ASSISTÊNCIA SOCIAL", "EDUCAÇÃO", "SAÚDE"].includes(sec)) {
+            dest.innerHTML = `AO SR.<br><strong>ANTÔNIO VICTOR RODRIGUES HOLANDA</strong><br>Secretaria Municipal de Finanças`;
+        } else {
+            dest.innerHTML = `AO SENHOR;<br><strong>MAURICIO DE VASCONCELOS HOLANDA</strong><br>Prefeito do Município de Chã Preta/AL`;
+        }
+
+        const tbody = document.querySelector("#view_tab tbody");
+        const listaPainel = document.getElementById('lista_itens_painel');
+        tbody.innerHTML = ""; listaPainel.innerHTML = "";
+        itens.forEach((it, idx) => {
+            tbody.innerHTML += `<tr><td>${it.num}</td><td style="text-align:left">${it.desc}</td><td>${it.un}</td><td>${it.qtd}</td></tr>`;
+            listaPainel.innerHTML += `<div class="item-lista"><span>${it.num}. ${it.desc.substring(0,15)}</span><div><button class="btn-acao" style="background:#007bff" onclick="editItem(${idx})">Edit</button><button class="btn-acao" style="background:var(--danger)" onclick="deleteItem(${idx})">X</button></div></div>`;
+        });
+
+        if(document.getElementById('tipo_texto_final').value === 'manual') {
+            document.getElementById('view_final_desc').innerText = document.getElementById('texto_final_manual').value;
+        } else {
+            document.getElementById('view_final_desc').innerHTML = `Vale Salientar que os itens acima mencionados são de suma importância para o bom funcionamento da Secretaria Municipal de ${formatTitle(sec)}, como também que será através da pessoa física/jurídica:`;
+        }
+
+        document.getElementById('view_cred_n').innerText = document.getElementById('cred_nome').value;
+        document.getElementById('view_cred_d').innerText = document.getElementById('cred_doc').value;
+        const incluirRef = document.getElementById('tem_ref').checked;
+        document.getElementById('ref_campos').style.display = incluirRef ? 'block' : 'none';
+        document.getElementById('view_ref_box').style.display = incluirRef ? 'block' : 'none';
+        document.getElementById('view_ref_t').innerText = document.getElementById('ref_tipo').value + document.getElementById('ref_txt').value;
+        document.getElementById('view_ass_n').innerText = (document.getElementById('ass_nome').value || "NOME DO SECRETÁRIO").toUpperCase();
+        document.getElementById('view_ass_p').innerText = document.getElementById('ass_port').value ? "Portaria nº " + document.getElementById('ass_port').value : "";
+    }
+
+    function salvarHistorico() {
+        const id = document.getElementById('view_id_footer').innerText;
+        const dados = {
+            id, itens: [...itens],
+            sec: document.getElementById('sec_input').value,
+            data: document.getElementById('data_input').value,
+            num: document.getElementById('num_seq').value,
+            dest: document.getElementById('destinacao_input').value,
+            cred: document.getElementById('cred_nome').value,
+            doc: document.getElementById('cred_doc').value,
+            ref_t: document.getElementById('ref_tipo').value,
+            ref_v: document.getElementById('ref_txt').value,
+            ass_n: document.getElementById('ass_nome').value,
+            ass_p: document.getElementById('ass_port').value
+        };
+        let hist = JSON.parse(localStorage.getItem('oficios_db') || '{}');
+        hist[id] = dados;
+        localStorage.setItem('oficios_db', JSON.stringify(hist));
+        renderHistorico();
+        alert("Ofício salvo com sucesso!");
+    }
+
+    function renderHistorico() {
+        const hist = JSON.parse(localStorage.getItem('oficios_db') || '{}');
+        const div = document.getElementById('lista_historico');
+        div.innerHTML = "";
+        Object.keys(hist).reverse().forEach(key => {
+            div.innerHTML += `<div class="historico-item">
+                <span title="${key}">${key}</span>
+                <div>
+                    <button class="btn-acao" style="background:var(--info)" onclick="carregarOficio('${key}')">Abrir</button>
+                    <button class="btn-acao" style="background:var(--danger)" onclick="deletarHistorico('${key}')">X</button>
+                </div>
+            </div>`;
+        });
+    }
+
+    function carregarOficio(key) {
+        const hist = JSON.parse(localStorage.getItem('oficios_db') || '{}');
+        const d = hist[key];
+        document.getElementById('sec_input').value = d.sec;
+        document.getElementById('data_input').value = d.data;
+        document.getElementById('num_seq').value = d.num;
+        document.getElementById('destinacao_input').value = d.dest;
+        document.getElementById('cred_nome').value = d.cred;
+        document.getElementById('cred_doc').value = d.doc;
+        document.getElementById('ref_tipo').value = d.ref_t;
+        document.getElementById('ref_txt').value = d.ref_v;
+        document.getElementById('ass_nome').value = d.ass_n;
+        document.getElementById('ass_port').value = d.ass_p;
+        itens = d.itens;
+        update();
+    }
+
+    function deletarHistorico(key) {
+        if(confirm("Deseja excluir este registro?")) {
+            let hist = JSON.parse(localStorage.getItem('oficios_db') || '{}');
+            delete hist[key];
+            localStorage.setItem('oficios_db', JSON.stringify(hist));
+            renderHistorico();
+        }
+    }
+
+    function exportarBackup() {
+        const data = localStorage.getItem('oficios_db');
+        const blob = new Blob([data], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `backup_oficios_cha_preta_${new Date().toLocaleDateString()}.json`;
+        a.click();
+    }
+
+    window.onload = renderHistorico;
+    update();
+</script>
+</body>
+</html>
