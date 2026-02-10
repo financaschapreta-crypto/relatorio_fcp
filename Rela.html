@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Financeiro - Chã Preta/AL</title>
+    <style>
+        :root {
+            --primary: #1a2a3a;
+            --accent: #2980b9;
+            --success: #27ae60;
+            --bg: #ebedef;
+        }
+
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--bg); margin: 0; padding: 10px; font-size: 13px; }
+        .wrapper { max-width: 1300px; margin: auto; display: grid; grid-template-columns: 320px 1fr; gap: 15px; }
+
+        /* Painel Lateral */
+        .panel { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); height: fit-content; position: sticky; top: 10px; }
+        .no-print h2 { font-size: 1.1rem; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--accent); }
+        .form-group { margin-bottom: 8px; }
+        label { font-weight: 600; font-size: 0.75rem; color: #555; }
+        input, select, textarea { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem; }
+        textarea { resize: vertical; height: 40px; }
+
+        .btn-add { width: 100%; background: var(--success); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-print { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+
+        /* Relatório Ultra-Compacto */
+        #folha-relatorio { background: white; padding: 20px; border-radius: 2px; min-height: 297mm; }
+        .cabecalho-pref { text-align: center; border-bottom: 1px solid #000; margin-bottom: 10px; padding-bottom: 5px; }
+        .cabecalho-pref h1 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+        .cabecalho-pref p { margin: 1px 0; font-size: 0.8rem; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.72rem; line-height: 1.1; }
+        th { background: #eee; border: 1px solid #999; padding: 3px 5px; text-transform: uppercase; }
+        td { border: 1px solid #ddd; padding: 2px 5px; vertical-align: middle; }
+        tr:nth-child(even) { background-color: #fafafa; }
+        
+        .col-valor { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; width: 80px; }
+        .col-acoes { width: 50px; text-align: center; }
+        
+        /* Resumos Compactos */
+        .resumos-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
+        .card-resumo { flex: 1; min-width: 200px; border: 1px solid #ddd; padding: 5px; font-size: 0.7rem; }
+        .card-resumo h4 { margin: 0 0 5px 0; background: #eee; padding: 2px 5px; font-size: 0.75rem; border-bottom: 1px solid #ddd; }
+        .linha-resumo { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; margin-bottom: 2px; }
+
+        .footer-rel { margin-top: 30px; text-align: center; font-size: 0.7rem; border-top: 1px solid #000; padding-top: 5px; page-break-inside: avoid; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { padding: 0; background: white; }
+            .wrapper { display: block; }
+            #folha-relatorio { padding: 0; border-radius: 0; box-shadow: none; }
+            th { background: #eee !important; -webkit-print-color-adjust: exact; }
+            .col-acoes { display: none; }
+            table { font-size: 0.65rem; } /* Ainda menor na impressão para caber tudo */
+            @page { margin: 1cm; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div class="panel no-print">
+        <h2>Lançamento Financeiro</h2>
+        
+        <div class="form-group">
+            <label>Credor</label>
+            <input type="text" id="credor" placeholder="Nome do Credor">
+        </div>
+
+        <div class="form-group">
+            <label>Lotação</label>
+            <select id="lotacao" onchange="checkOutros('lotacao', 'inputLotacao')">
+                <option value="Administração">Sec. Mun. de Administração</option>
+                <option value="Infraestrutura">Infraestrutura</option>
+                <option value="Agricultura">Agricultura</option>
+                <option value="Finanças">Finanças</option>
+                <option value="Assistência Social">Assistência Social</option>
+                <option value="Educação">Educação</option>
+                <option value="Saúde">Saúde</option>
+                <option value="Governo">Governo</option>
+                <option value="Cultura">Cultura</option>
+                <option value="Esporte">Esporte</option>
+                <option value="Gabinete">Gabinete do Prefeito</option>
+                <option value="Funserp">Funserp</option>
+                <option value="OUTRO">-- Outro (Digitar) --</option>
+            </select>
+            <input type="text" id="inputLotacao" style="display:none; margin-top:4px;" placeholder="Nova lotação...">
+        </div>
+
+        <div class="form-group">
+            <label>Recurso</label>
+            <select id="recurso" onchange="checkOutros('recurso', 'inputRecurso')">
+                <option value="Rec. Próprio">Rec. Próprio</option>
+                <option value="Rec. da Secretaria">Rec. da Secretaria</option>
+                <option value="OUTRO">-- Outro (Digitar) --</option>
+            </select>
+            <input type="text" id="inputRecurso" style="display:none; margin-top:4px;" placeholder="Novo recurso...">
+        </div>
+
+        <div class="form-group">
+            <label>Valor (R$)</label>
+            <input type="number" id="valor" step="0.01">
+        </div>
+
+        <div class="form-group">
+            <label>Observação Individual</label>
+            <textarea id="obs_item" placeholder="Ex: NF 123, Referente a..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Relator Responsável</label>
+            <select id="responsavel" onchange="atualizarRelatorio()">
+                <option value="Eduardo">Eduardo</option>
+                <option value="Marcos">Marcos</option>
+                <option value="Antônio Victor">Antônio Victor</option>
+                <option value="Não Informado">Não Informado</option>
+            </select>
+        </div>
+
+        <button class="btn-add" id="btnSalvar" onclick="salvarItem()">Adicionar Item</button>
+        <button class="btn-print" onclick="window.print()">Imprimir PDF</button>
+        <p style="font-size: 10px; color: #888; margin-top: 10px;">* Itens salvos apenas nesta sessão.</p>
+    </div>
+
+    <div id="folha-relatorio">
+        <div class="cabecalho-pref">
+            <h1>Prefeitura Municipal de Chã Preta/AL</h1>
+            <p>Secretaria Municipal de Finanças</p>
+            <p><strong>Relatório Nº <span id="display-id"></span></strong> | <span id="display-data"></span></p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 25px;">#</th>
+                    <th>Credor</th>
+                    <th>Lotação</th>
+                    <th>Recurso</th>
+                    <th style="width: 150px;">Observação</th>
+                    <th class="col-valor">Valor</th>
+                    <th class="col-acoes no-print"></th>
+                </tr>
+            </thead>
+            <tbody id="tabela-corpo"></tbody>
+            <tfoot>
+                <tr style="background: #f2f2f2; font-size: 0.8rem;">
+                    <td colspan="5" style="text-align:right"><strong>TOTAL GERAL:</strong></td>
+                    <td class="col-valor" id="total-geral">R$ 0,00</td>
+                    <td class="no-print"></td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="resumos-container" id="resumos-area"></div>
+
+        <div class="footer-rel">
+            <p>RELATÓRIO Nº <span id="display-id-ft"></span> | Emitido por: <span id="display-relator">Eduardo</span></p>
+            <p><strong>Secretaria Municipal de Finanças de Chã Preta/AL</strong></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let dados = [];
+    let editIndex = null;
+    const relId = `${new Date().getFullYear()}${Math.floor(1000 + Math.random() * 9000)}`;
+
+    function checkOutros(selectId, inputId) {
+        const s = document.getElementById(selectId);
+        const i = document.getElementById(inputId);
+        i.style.display = (s.value === "OUTRO") ? "block" : "none";
+    }
+
+    function salvarItem() {
+        const credor = document.getElementById('credor').value;
+        const valor = parseFloat(document.getElementById('valor').value);
+        const obs = document.getElementById('obs_item').value;
+        
+        let lotacao = document.getElementById('lotacao').value;
+        if(lotacao === "OUTRO") lotacao = document.getElementById('inputLotacao').value;
+        
+        let recurso = document.getElementById('recurso').value;
+        if(recurso === "OUTRO") recurso = document.getElementById('inputRecurso').value;
+
+        if(!credor || isNaN(valor)) return alert("Preencha Credor e Valor!");
+
+        const item = { credor, lotacao, recurso, valor, obs };
+
+        if(editIndex !== null) {
+            dados[editIndex] = item;
+            editIndex = null;
+            document.getElementById('btnSalvar').innerText = "Adicionar Item";
+            document.getElementById('btnSalvar').style.background = "var(--success)";
+        } else {
+            dados.push(item);
+        }
+
+        document.getElementById('credor').value = "";
+        document.getElementById('valor').value = "";
+        document.getElementById('obs_item').value = "";
+        document.getElementById('credor').focus();
+        
+        atualizarRelatorio();
+    }
+
+    function editarItem(index) {
+        const item = dados[index];
+        document.getElementById('credor').value = item.credor;
+        document.getElementById('valor').value = item.valor;
+        document.getElementById('obs_item').value = item.obs;
+        editIndex = index;
+        document.getElementById('btnSalvar').innerText = "Confirmar Edição";
+        document.getElementById('btnSalvar').style.background = "#e67e22";
+    }
+
+    function excluirItem(index) {
+        if(confirm("Remover este registro?")) {
+            dados.splice(index, 1);
+            atualizarRelatorio();
+        }
+    }
+
+    function atualizarRelatorio() {
+        document.getElementById('display-id').innerText = relId;
+        document.getElementById('display-id-ft').innerText = relId;
+        document.getElementById('display-data').innerText = new Date().toLocaleDateString('pt-BR');
+        document.getElementById('display-relator').innerText = document.getElementById('responsavel').value;
+
+        const corpo = document.getElementById('tabela-corpo');
+        corpo.innerHTML = "";
+        
+        let total = 0;
+        let lotacoes = {};
+        let recursos = {};
+        let combos = {};
+
+        dados.forEach((item, i) => {
+            total += item.valor;
+            lotacoes[item.lotacao] = (lotacoes[item.lotacao] || 0) + item.valor;
+            recursos[item.recurso] = (recursos[item.recurso] || 0) + item.valor;
+            let cKey = `${item.lotacao} + ${item.recurso}`;
+            combos[cKey] = (combos[cKey] || 0) + item.valor;
+
+            corpo.innerHTML += `
+                <tr>
+                    <td style="color:#888">${i+1}</td>
+                    <td><strong>${item.credor}</strong></td>
+                    <td>${item.lotacao}</td>
+                    <td>${item.recurso}</td>
+                    <td style="font-style: italic; color: #555;">${item.obs || '-'}</td>
+                    <td class="col-valor">${item.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                    <td class="col-acoes no-print">
+                        <span style="cursor:pointer; color:blue;" onclick="editarItem(${i})">✎</span>
+                        <span style="cursor:pointer; color:red; margin-left:5px;" onclick="excluirItem(${i})">✖</span>
+                    </td>
+                </tr>`;
+        });
+
+        document.getElementById('total-geral').innerText = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+
+        // Resumos compactos
+        let htmlR = renderCard("Por Lotação", lotacoes);
+        htmlR += renderCard("Por Recurso", recursos);
+        htmlR += renderCard("Lotação + Recurso", combos);
+        document.getElementById('resumos-area').innerHTML = htmlR;
+    }
+
+    function renderCard(titulo, objeto) {
+        let h = `<div class="card-resumo"><h4>${titulo}</h4>`;
+        for(let k in objeto) {
+            h += `<div class="linha-resumo"><span>${k}</span> <span>R$ ${objeto[k].toLocaleString('pt-BR', {minimumFractionDigits:2})}</span></div>`;
+        }
+        return h + `</div>`;
+    }
+
+    atualizarRelatorio();
+</script>
+
+</body>
+</html>
