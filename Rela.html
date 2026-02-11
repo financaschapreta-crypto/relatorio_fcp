@@ -10,6 +10,9 @@
             --accent: #2980b9;
             --success: #27ae60;
             --bg: #ebedef;
+            --warning: #e67e22;
+            --danger: #e74c3c;
+            --gray: #607d8b;
         }
 
         body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--bg); margin: 0; padding: 10px; font-size: 13px; }
@@ -25,6 +28,25 @@
 
         .btn-add { width: 100%; background: var(--success); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-print { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .btn-hist { width: 100%; background: var(--gray); color: white; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .btn-save-rel { width: 100%; background: var(--accent); color: white; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        
+        .backup-group { display: flex; gap: 5px; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .btn-backup { flex: 1; font-size: 0.7rem; padding: 5px; cursor: pointer; background: #f8f9fa; border: 1px solid #ccc; border-radius: 3px; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+        .modal-content { background: white; margin: 2% auto; padding: 20px; width: 90%; max-width: 800px; border-radius: 8px; max-height: 90vh; overflow-y: auto; position: relative; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); margin-bottom: 15px; }
+        
+        /* Busca por Período */
+        .busca-periodo-container { background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 15px; display: flex; align-items: flex-end; gap: 10px; border: 1px solid #ddd; }
+        .busca-periodo-container div { flex: 1; }
+        .btn-filter { background: var(--primary); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-clear { background: #bbb; color: white; border: none; padding: 8px 10px; border-radius: 4px; cursor: pointer; }
+
+        .hist-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
+        .hist-item:hover { background: #f1f4f6; }
 
         /* Relatório Ultra-Compacto */
         #folha-relatorio { background: white; padding: 20px; border-radius: 2px; min-height: 297mm; }
@@ -40,7 +62,6 @@
         .col-valor { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; width: 80px; }
         .col-acoes { width: 50px; text-align: center; }
         
-        /* Resumos Compactos */
         .resumos-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
         .card-resumo { flex: 1; min-width: 200px; border: 1px solid #ddd; padding: 5px; font-size: 0.7rem; }
         .card-resumo h4 { margin: 0 0 5px 0; background: #eee; padding: 2px 5px; font-size: 0.75rem; border-bottom: 1px solid #ddd; }
@@ -55,7 +76,7 @@
             #folha-relatorio { padding: 0; border-radius: 0; box-shadow: none; }
             th { background: #eee !important; -webkit-print-color-adjust: exact; }
             .col-acoes { display: none; }
-            table { font-size: 0.65rem; } /* Ainda menor na impressão para caber tudo */
+            table { font-size: 0.65rem; }
             @page { margin: 1cm; }
         }
     </style>
@@ -108,7 +129,7 @@
 
         <div class="form-group">
             <label>Observação Individual</label>
-            <textarea id="obs_item" placeholder="Ex: NF 123, Referente a..."></textarea>
+            <textarea id="obs_item" placeholder="Ex: NF 123..."></textarea>
         </div>
 
         <div class="form-group">
@@ -122,8 +143,15 @@
         </div>
 
         <button class="btn-add" id="btnSalvar" onclick="salvarItem()">Adicionar Item</button>
+        <button class="btn-save-rel" onclick="salvarNoHistorico()">Finalizar e Salvar Relatório</button>
+        <button class="btn-hist" onclick="abrirModal()">Ver Histórico (Período)</button>
         <button class="btn-print" onclick="window.print()">Imprimir PDF</button>
-        <p style="font-size: 10px; color: #888; margin-top: 10px;">* Itens salvos apenas nesta sessão.</p>
+
+        <div class="backup-group">
+            <button class="btn-backup" onclick="exportarBackup()">Gerar Backup</button>
+            <button class="btn-backup" onclick="document.getElementById('fileInput').click()">Carregar Backup</button>
+            <input type="file" id="fileInput" style="display:none" accept=".json" onchange="importarBackup(event)">
+        </div>
     </div>
 
     <div id="folha-relatorio">
@@ -164,10 +192,34 @@
     </div>
 </div>
 
+<div id="modalHistorico" class="modal no-print">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Histórico de Relatórios</h3>
+            <span style="cursor:pointer; font-size: 28px; font-weight: bold;" onclick="fecharModal()">&times;</span>
+        </div>
+        
+        <div class="busca-periodo-container">
+            <div>
+                <label>De:</label>
+                <input type="date" id="dataInicio">
+            </div>
+            <div>
+                <label>Até:</label>
+                <input type="date" id="dataFim">
+            </div>
+            <button class="btn-filter" onclick="filtrarHistoricoPorPeriodo()">Filtrar</button>
+            <button class="btn-clear" onclick="limparFiltro()">Limpar</button>
+        </div>
+
+        <div id="lista-historico"></div>
+    </div>
+</div>
+
 <script>
     let dados = [];
     let editIndex = null;
-    const relId = `${new Date().getFullYear()}${Math.floor(1000 + Math.random() * 9000)}`;
+    let relId = `${new Date().getFullYear()}${Math.floor(1000 + Math.random() * 9000)}`;
 
     function checkOutros(selectId, inputId) {
         const s = document.getElementById(selectId);
@@ -179,10 +231,8 @@
         const credor = document.getElementById('credor').value;
         const valor = parseFloat(document.getElementById('valor').value);
         const obs = document.getElementById('obs_item').value;
-        
         let lotacao = document.getElementById('lotacao').value;
         if(lotacao === "OUTRO") lotacao = document.getElementById('inputLotacao').value;
-        
         let recurso = document.getElementById('recurso').value;
         if(recurso === "OUTRO") recurso = document.getElementById('inputRecurso').value;
 
@@ -203,7 +253,6 @@
         document.getElementById('valor').value = "";
         document.getElementById('obs_item').value = "";
         document.getElementById('credor').focus();
-        
         atualizarRelatorio();
     }
 
@@ -214,7 +263,7 @@
         document.getElementById('obs_item').value = item.obs;
         editIndex = index;
         document.getElementById('btnSalvar').innerText = "Confirmar Edição";
-        document.getElementById('btnSalvar').style.background = "#e67e22";
+        document.getElementById('btnSalvar').style.background = "var(--warning)";
     }
 
     function excluirItem(index) {
@@ -261,8 +310,6 @@
         });
 
         document.getElementById('total-geral').innerText = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-
-        // Resumos compactos
         let htmlR = renderCard("Por Lotação", lotacoes);
         htmlR += renderCard("Por Recurso", recursos);
         htmlR += renderCard("Lotação + Recurso", combos);
@@ -277,6 +324,150 @@
         return h + `</div>`;
     }
 
+    // --- SISTEMA DE HISTÓRICO E BACKUP ---
+
+    function salvarNoHistorico() {
+        if (dados.length === 0) return alert("Adicione itens antes de salvar!");
+        
+        const historico = JSON.parse(localStorage.getItem('financas_cha_preta') || '[]');
+        
+        // Salvamos o timestamp para facilitar a busca por período depois
+        const novoRelatorio = {
+            id: relId,
+            timestamp: new Date().getTime(),
+            dataExibicao: new Date().toLocaleDateString('pt-BR'),
+            relator: document.getElementById('responsavel').value,
+            total: document.getElementById('total-geral').innerText,
+            itens: [...dados]
+        };
+
+        historico.push(novoRelatorio);
+        localStorage.setItem('financas_cha_preta', JSON.stringify(historico));
+        
+        alert("Relatório salvo no histórico!");
+        dados = [];
+        relId = `${new Date().getFullYear()}${Math.floor(1000 + Math.random() * 9000)}`;
+        atualizarRelatorio();
+    }
+
+    function abrirModal() {
+        document.getElementById('modalHistorico').style.display = 'block';
+        renderizarListaHistorico();
+    }
+
+    function fecharModal() {
+        document.getElementById('modalHistorico').style.display = 'none';
+    }
+
+    function renderizarListaHistorico(dadosFiltrados = null) {
+        const historico = dadosFiltrados || JSON.parse(localStorage.getItem('financas_cha_preta') || '[]');
+        const container = document.getElementById('lista-historico');
+        container.innerHTML = historico.length ? "" : "<p style='padding:20px; text-align:center;'>Nenhum relatório encontrado para este período.</p>";
+
+        // Inverte para mostrar os mais recentes primeiro
+        const listaParaExibir = dadosFiltrados ? historico : [...historico].reverse();
+
+        listaParaExibir.forEach((rel, index) => {
+            // Se for filtrado, precisamos achar o index original para ações de carregar/excluir
+            const historicoOriginal = JSON.parse(localStorage.getItem('financas_cha_preta') || '[]');
+            const indexOriginal = historicoOriginal.findIndex(item => item.id === rel.id && item.timestamp === rel.timestamp);
+
+            container.innerHTML += `
+                <div class="hist-item">
+                    <div>
+                        <strong>Nº ${rel.id}</strong> - <small>${rel.dataExibicao}</small><br>
+                        <span style="font-size:0.75rem; color:#666">Resp: ${rel.relator} | Total: ${rel.total}</span>
+                    </div>
+                    <div>
+                        <button onclick="carregarHistorico(${indexOriginal})" style="background:var(--accent); color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">Abrir</button>
+                        <button onclick="excluirHistorico(${indexOriginal})" style="background:var(--danger); color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; margin-left:5px;">✖</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function filtrarHistoricoPorPeriodo() {
+        const strInicio = document.getElementById('dataInicio').value;
+        const strFim = document.getElementById('dataFim').value;
+
+        if(!strInicio || !strFim) return alert("Selecione as duas datas para o período!");
+
+        // Ajustar datas para início e fim do dia
+        const dInicio = new Date(strInicio + 'T00:00:00').getTime();
+        const dFim = new Date(strFim + 'T23:59:59').getTime();
+
+        const historico = JSON.parse(localStorage.getItem('financas_cha_preta') || '[]');
+        
+        const filtrados = historico.filter(rel => {
+            return rel.timestamp >= dInicio && rel.timestamp <= dFim;
+        });
+
+        renderizarListaHistorico(filtrados.reverse());
+    }
+
+    function limparFiltro() {
+        document.getElementById('dataInicio').value = "";
+        document.getElementById('dataFim').value = "";
+        renderizarListaHistorico();
+    }
+
+    function carregarHistorico(index) {
+        const historico = JSON.parse(localStorage.getItem('financas_cha_preta') || '[]');
+        const selecionado = historico[index];
+        if(confirm(`Carregar Relatório Nº ${selecionado.id}? Dados atuais não salvos serão perdidos.`)) {
+            dados = selecionado.itens;
+            relId = selecionado.id;
+            document.getElementById('responsavel').value = selecionado.relator;
+            atualizarRelatorio();
+            fecharModal();
+        }
+    }
+
+    function excluirHistorico(index) {
+        if(confirm("Excluir definitivamente este relatório do histórico?")) {
+            let historico = JSON.parse(localStorage.getItem('financas_cha_preta') || '[]');
+            historico.splice(index, 1);
+            localStorage.setItem('financas_cha_preta', JSON.stringify(historico));
+            renderizarListaHistorico();
+        }
+    }
+
+    function exportarBackup() {
+        const historico = localStorage.getItem('financas_cha_preta');
+        if(!historico || historico === "[]") return alert("Não há dados para exportar.");
+        
+        const blob = new Blob([historico], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_financeiro_cha_preta_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
+        a.click();
+    }
+
+    function importarBackup(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importado = JSON.parse(e.target.result);
+                if(confirm("Deseja importar este backup? Os dados serão adicionados ao seu histórico atual.")) {
+                    const atual = JSON.parse(localStorage.getItem('financas_cha_preta') || '[]');
+                    const novoHist = [...atual, ...importado];
+                    localStorage.setItem('financas_cha_preta', JSON.stringify(novoHist));
+                    alert("Dados importados com sucesso!");
+                    if(document.getElementById('modalHistorico').style.display === 'block') renderizarListaHistorico();
+                }
+            } catch (err) {
+                alert("Erro ao ler o arquivo. Certifique-se que é um backup válido.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // Inicialização
     atualizarRelatorio();
 </script>
 
