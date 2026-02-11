@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGO - Gestão Finanças Obras</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #1a2a3a; --secondary: #34495e; --accent: #27ae60; --bg: #f0f2f5; --warning: #f1c40f; --danger: #e74c3c; --info: #3498db; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; background: var(--bg); }
+
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .login-box input { display: block; width: 200px; margin: 10px auto; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+
+        .main-wrapper { display: flex; height: 100vh; overflow: hidden; visibility: hidden; }
+        .sidebar { width: 350px; background: white; padding: 20px; border-right: 2px solid #ddd; overflow-y: auto; }
+        .content { flex: 1; padding: 25px; overflow-y: auto; background: white; }
+
+        h2, h3 { color: var(--primary); margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+        .field { margin-bottom: 12px; }
+        .check-group { display: flex; gap: 15px; background: #f9f9f9; padding: 10px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #eee; }
+        .check-item { display: flex; align-items: center; gap: 5px; font-size: 0.85em; font-weight: bold; cursor: pointer; }
+        
+        label { display: block; font-weight: 600; font-size: 0.85em; margin-bottom: 4px; color: #555; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        .filter-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+        .filter-section h4 { grid-column: 1/-1; margin: 0; font-size: 0.9em; color: var(--primary); }
+
+        .ref-table-container { margin-top: 20px; border: 1px solid #eee; border-radius: 4px; max-height: 250px; overflow-y: auto; }
+        .ref-table { width: 100%; font-size: 0.75em; border-collapse: collapse; }
+        .ref-table th { background: #eee; position: sticky; top: 0; z-index: 1; }
+        .ref-table td, .ref-table th { padding: 6px; border-bottom: 1px solid #eee; text-align: left; }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        button { padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8em; transition: 0.2s; }
+        
+        .btn-save { background: var(--accent); color: white; grid-column: span 2; font-size: 1em; margin-bottom: 5px; }
+        .btn-update { background: var(--warning); color: #000; grid-column: span 2; font-size: 1em; margin-bottom: 5px; display: none; }
+        .btn-cancel { background: #eee; color: #333; grid-column: span 2; margin-bottom: 15px; display: none; }
+        
+        .btn-pdf { background: #e67e22; color: white; }
+        .btn-bkp { background: #7f8c8d; color: white; }
+        .btn-sel { background: #eee; padding: 2px 5px; border: 1px solid #ccc; font-size: 0.7em; }
+        .btn-clear-filters { background: #95a5a6; color: white; grid-column: 1/-1; margin-top: 5px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th { background: #f8f9fa; color: var(--primary); border: 1px solid #dee2e6; padding: 10px; text-align: left; }
+        td { border: 1px solid #dee2e6; padding: 10px; vertical-align: top; }
+        
+        .obs-text { display: block; margin-top: 5px; padding-top: 5px; border-top: 1px dashed #ddd; font-style: italic; color: #666; font-size: 0.9em; }
+        .id-badge { background: #e9ecef; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 0.8em; color: var(--primary); }
+
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .total-card { background: var(--primary); color: white; padding: 15px; border-radius: 8px; }
+        .total-card.alt { background: white; color: var(--primary); border: 1px solid #ddd; }
+        .total-val { font-size: 1.4em; font-weight: bold; color: #2ecc71; display: block; }
+        
+        .status-tag { padding: 2px 6px; border-radius: 4px; font-size: 0.75em; font-weight: bold; }
+        .tag-pago { background: #d4edda; color: #155724; }
+        .tag-pendente { background: #f8d7da; color: #721c24; }
+
+        /* Estilos para a área de gráficos */
+        .charts-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; margin-bottom: 25px; }
+        .chart-box { background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 8px; height: 250px; display: flex; flex-direction: column; align-items: center; }
+        .chart-box h5 { margin: 0 0 10px 0; color: var(--secondary); font-size: 0.9em; width: 100%; text-align: center; }
+
+        .relatorio-footer { margin-top: 30px; padding: 15px; border-top: 2px solid #333; font-size: 0.8em; color: #555; display: flex; justify-content: space-between; align-items: center; }
+
+        @media print {
+            .sidebar, .no-print, .filter-section, .btn-clear-filters { display: none !important; }
+            .main-wrapper { visibility: visible !important; display: block; }
+            .content { width: 100%; padding: 0; }
+            .charts-container { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <div class="login-box">
+        <h3>SGO - Login</h3>
+        <input type="text" id="userInput" placeholder="Usuário">
+        <input type="password" id="passInput" placeholder="Senha">
+        <button onclick="verificarLogin()" style="background: var(--accent); color:white; width: 100%">Entrar</button>
+    </div>
+</div>
+
+<div class="main-wrapper" id="mainApp">
+    <div class="sidebar no-print">
+        <h2 id="tituloForm">Cadastro</h2>
+        <input type="hidden" id="editIndex" value="-1">
+        
+        <div class="field">
+            <label>Empresa * (Digite ou selecione ao lado)</label>
+            <input type="text" id="empresa" list="listaEmpresas" placeholder="Nome da Empresa">
+            <datalist id="listaEmpresas"></datalist>
+        </div>
+        
+        <div class="field">
+            <label>Título da Obra</label>
+            <input type="text" id="obra" placeholder="Ex: Reforma da Escola X">
+        </div>
+
+        <div class="field">
+            <label>Tipo de Obra</label>
+            <select id="tipoObra">
+                <option value="">Selecione...</option>
+                <option value="Escolas">Escolas</option>
+                <option value="Reforma Geral">Reforma Geral</option>
+                <option value="Pavimentação">Pavimentação</option>
+                <option value="Construção">Construção</option>
+                <option value="Manutenções de Prédios">Manutenções de Prédios</option>
+                <option value="Outras">Outras</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label>Valor (R$) *</label>
+            <input type="number" id="valor" step="0.01">
+        </div>
+
+        <div class="check-group">
+            <label class="check-item"><input type="checkbox" id="checkEmpenhada" onchange="toggleStatusFields()"> Empenhada</label>
+            <label class="check-item"><input type="checkbox" id="checkPaga" onchange="toggleStatusFields()"> Paga</label>
+        </div>
+
+        <div id="boxEmpenho" style="display:none" class="field">
+            <label>Nº Empenho</label>
+            <input type="text" id="empenho">
+        </div>
+        <div id="boxData" style="display:none" class="field">
+            <label>Data Pagamento</label>
+            <input type="date" id="dataPagamento">
+        </div>
+
+        <div class="field">
+            <label>Observações</label>
+            <textarea id="obs" rows="2"></textarea>
+        </div>
+
+        <button id="btnSalvar" class="btn-save" onclick="salvarRegistro()">SALVAR</button>
+        <button id="btnAtualizar" class="btn-update" onclick="salvarRegistro()">ATUALIZAR</button>
+        <button id="btnCancelar" class="btn-cancel" onclick="limparFormulario()">Cancelar Edição</button>
+        
+        <div class="btn-group">
+            <button class="btn-pdf" onclick="window.print()">Gerar PDF</button>
+            <button class="btn-bkp" onclick="fazerBackup()">Backup</button>
+            <button class="btn-bkp" onclick="document.getElementById('importFile').click()">Importar</button>
+            <input type="file" id="importFile" style="display:none" onchange="importarBackup(event)">
+        </div>
+
+        <div class="ref-table-container">
+            <label style="padding:5px; font-size:0.7em; color:#888;">LISTA DE EMPRESAS (GERENCIAR)</label>
+            <table class="ref-table">
+                <thead><tr><th>ID</th><th>Empresa</th><th>Ações</th></tr></thead>
+                <tbody id="corpoRefEmpresas"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="areaRelatorio">
+            <h3>Gestão de Obras e Finanças</h3>
+            
+            <div class="filter-section no-print">
+                <h4>Filtros Avançados</h4>
+                <input type="text" id="fEmpID" onkeyup="renderizarTabela()" placeholder="ID Empresa">
+                <input type="text" id="fEmpresa" onkeyup="renderizarTabela()" placeholder="Empresa...">
+                <select id="fTipo" onchange="renderizarTabela()">
+                    <option value="">Todos Tipos</option>
+                    <option value="Escolas">Escolas</option>
+                    <option value="Reforma Geral">Reforma Geral</option>
+                    <option value="Pavimentação">Pavimentação</option>
+                    <option value="Construção">Construção</option>
+                    <option value="Manutenções de Prédios">Manutenções de Prédios</option>
+                    <option value="Outras">Outras</option>
+                </select>
+                <input type="number" id="fValMin" onkeyup="renderizarTabela()" placeholder="R$ Min">
+                <input type="date" id="fDataIni" onchange="renderizarTabela()">
+                <input type="date" id="fDataFim" onchange="renderizarTabela()">
+                <button class="btn-clear-filters" onclick="limparFiltros()">Limpar Filtros</button>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="total-card"><small>TOTAL FILTRADO</small><span class="total-val" id="totalGeral">R$ 0,00</span></div>
+                <div class="total-card alt">
+                    <small>STATUS FINANC.</small>
+                    <div style="font-size: 0.9em;">
+                        <span style="color:var(--accent)">PAGO: <span id="totalPago">R$ 0,00</span></span><br>
+                        <span style="color:var(--danger)">PEND: <span id="totalPendente">R$ 0,00</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-container no-print">
+                <div class="chart-box">
+                    <h5>Status de Pagamentos</h5>
+                    <canvas id="chartStatus"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h5>Volume por Tipo de Obra (R$)</h5>
+                    <canvas id="chartTipos"></canvas>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th width="100px">ID Emp/Obra</th>
+                        <th>Empresa / Obra / Tipo</th>
+                        <th width="140px">Status/Data</th>
+                        <th width="120px">Valor</th>
+                        <th class="no-print" width="80px">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoTabela"></tbody>
+            </table>
+
+            <div class="relatorio-footer">
+                <strong>Gestor de Obras - JMSS</strong>
+                <span id="footerInfo"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variáveis globais para os gráficos
+    let chartStatusInstance = null;
+    let chartTiposInstance = null;
+
+    function verificarLogin() {
+        if(document.getElementById('userInput').value === "financas" && document.getElementById('passInput').value === "2026") {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainApp').style.visibility = 'visible';
+            renderizarTabela();
+        }
+    }
+
+    let obras = JSON.parse(localStorage.getItem('sgo_obras_v3')) || [];
+    let empresasDB = JSON.parse(localStorage.getItem('sgo_empresas_db_v3')) || {}; 
+
+    function toggleStatusFields() {
+        document.getElementById('boxEmpenho').style.display = document.getElementById('checkEmpenhada').checked ? 'block' : 'none';
+        document.getElementById('boxData').style.display = document.getElementById('checkPaga').checked ? 'block' : 'none';
+    }
+
+    function selecionarEmpresa(nome) {
+        document.getElementById('empresa').value = nome;
+    }
+
+    function editarEmpresaDB(nomeAntigo) {
+        const novoNome = prompt("Novo nome para a empresa:", nomeAntigo);
+        if (novoNome && novoNome.trim() !== "" && novoNome.trim().toUpperCase() !== nomeAntigo) {
+            const nomeChaveNovo = novoNome.trim().toUpperCase();
+            if (empresasDB[nomeChaveNovo]) { alert("Este nome de empresa já existe!"); return; }
+            empresasDB[nomeChaveNovo] = empresasDB[nomeAntigo];
+            delete empresasDB[nomeAntigo];
+            obras.forEach(o => { if(o.empresa.toUpperCase() === nomeAntigo) o.empresa = novoNome.trim(); });
+            localStorage.setItem('sgo_empresas_db_v3', JSON.stringify(empresasDB));
+            localStorage.setItem('sgo_obras_v3', JSON.stringify(obras));
+            renderizarTabela();
+        }
+    }
+
+    function excluirEmpresaDB(nomeChave) {
+        if(confirm(`Remover "${nomeChave}" do banco?`)) {
+            delete empresasDB[nomeChave];
+            localStorage.setItem('sgo_empresas_db_v3', JSON.stringify(empresasDB));
+            renderizarTabela();
+        }
+    }
+
+    function obterOuCriarIDEmpresa(nome) {
+        const nomeChave = nome.trim().toUpperCase();
+        if (!empresasDB[nomeChave]) {
+            const num = Object.keys(empresasDB).length + 1;
+            empresasDB[nomeChave] = `E-${num.toString().padStart(2, '0')}`;
+            localStorage.setItem('sgo_empresas_db_v3', JSON.stringify(empresasDB));
+        }
+        return empresasDB[nomeChave];
+    }
+
+    function salvarRegistro() {
+        const index = parseInt(document.getElementById('editIndex').value);
+        const nomeEmpresa = document.getElementById('empresa').value.trim();
+        const valor = parseFloat(document.getElementById('valor').value) || 0;
+        if(!nomeEmpresa || !valor) { alert("Empresa e Valor são obrigatórios!"); return; }
+        const idEmp = obterOuCriarIDEmpresa(nomeEmpresa);
+        const dataObra = {
+            idObra: index === -1 ? `OB-${(obras.length + 1).toString().padStart(3, '0')}` : obras[index].idObra,
+            idEmpresa: idEmp,
+            empresa: nomeEmpresa,
+            obra: document.getElementById('obra').value.trim(),
+            tipo: document.getElementById('tipoObra').value,
+            isPaga: document.getElementById('checkPaga').checked,
+            isEmpenhada: document.getElementById('checkEmpenhada').checked,
+            data: document.getElementById('dataPagamento').value,
+            valor: valor,
+            empenho: document.getElementById('empenho').value,
+            obs: document.getElementById('obs').value
+        };
+        if(index === -1) obras.push(dataObra); else obras[index] = dataObra;
+        localStorage.setItem('sgo_obras_v3', JSON.stringify(obras));
+        limparFormulario();
+        renderizarTabela();
+    }
+
+    function limparFiltros() {
+        document.querySelectorAll('.filter-section input, .filter-section select').forEach(i => i.value = '');
+        renderizarTabela();
+    }
+
+    function renderizarTabela() {
+        const corpo = document.getElementById('corpoTabela');
+        const corpoRef = document.getElementById('corpoRefEmpresas');
+        const dl = document.getElementById('listaEmpresas');
+        
+        const fID = document.getElementById('fEmpID').value.toUpperCase();
+        const fEmp = document.getElementById('fEmpresa').value.toLowerCase();
+        const fTipo = document.getElementById('fTipo').value;
+        const fVMin = parseFloat(document.getElementById('fValMin').value) || 0;
+        const fDIni = document.getElementById('fDataIni').value;
+        const fDFim = document.getElementById('fDataFim').value;
+
+        corpo.innerHTML = ''; corpoRef.innerHTML = ''; dl.innerHTML = '';
+        let tGeral = 0, tPago = 0, tPend = 0;
+        
+        // Dados para os gráficos
+        let dadosTipos = {};
+
+        Object.keys(empresasDB).sort().forEach(nome => {
+            dl.innerHTML += `<option value="${nome}">`;
+            corpoRef.innerHTML += `<tr><td><span class="id-badge">${empresasDB[nome]}</span></td><td>${nome}</td><td style="display:flex; gap:2px;"><button class="btn-sel" onclick="selecionarEmpresa('${nome}')">✔️</button><button class="btn-sel" onclick="editarEmpresaDB('${nome}')">✏️</button><button class="btn-sel" onclick="excluirEmpresaDB('${nome}')">🗑️</button></td></tr>`;
+        });
+
+        obras.forEach((item, i) => {
+            const matchID = item.idEmpresa.includes(fID);
+            const matchEmp = item.empresa.toLowerCase().includes(fEmp);
+            const matchTipo = fTipo === "" || item.tipo === fTipo;
+            const matchVal = item.valor >= fVMin;
+            let matchDate = true;
+            if(fDIni && item.data < fDIni) matchDate = false;
+            if(fDFim && item.data > fDFim) matchDate = false;
+
+            if(matchID && matchEmp && matchTipo && matchVal && matchDate) {
+                tGeral += item.valor;
+                if(item.isPaga) tPago += item.valor; else tPend += item.valor;
+
+                // Agrupar para gráfico de tipos
+                const tipo = item.tipo || 'Outros';
+                dadosTipos[tipo] = (dadosTipos[tipo] || 0) + item.valor;
+
+                const statusHTML = item.isPaga ? `<span class="status-tag tag-pago">PAGO</span><br><small>${item.data.split('-').reverse().join('/')}</small>` : `<span class="status-tag tag-pendente">NÃO PAGA</span>`;
+                corpo.innerHTML += `<tr><td><span class="id-badge">${item.idEmpresa}</span><br><small>${item.idObra}</small></td><td><strong>${item.empresa}</strong><br><small>${item.obra || 'Sem título'} - <b>${item.tipo || 'Outros'}</b></small>${item.obs ? `<span class="obs-text">📝 ${item.obs}</span>` : ''}</td><td>${statusHTML}</td><td><b>${item.valor.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</b></td><td class="no-print"><button onclick="carregarParaEditar(${i})">✏️</button><button onclick="excluirObra(${i})">🗑️</button></td></tr>`;
+            }
+        });
+
+        document.getElementById('totalGeral').innerText = tGeral.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        document.getElementById('totalPago').innerText = tPago.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        document.getElementById('totalPendente').innerText = tPend.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        document.getElementById('footerInfo').innerText = `Relatório Atualizado em ${new Date().toLocaleDateString('pt-BR')}`;
+        
+        atualizarGraficos(tPago, tPend, dadosTipos);
+    }
+
+    function atualizarGraficos(pago, pendente, dadosTipos) {
+        // Gráfico de Status (Pizza)
+        const ctxStatus = document.getElementById('chartStatus').getContext('2d');
+        if(chartStatusInstance) chartStatusInstance.destroy();
+        chartStatusInstance = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pago', 'Pendente'],
+                datasets: [{
+                    data: [pago, pendente],
+                    backgroundColor: ['#27ae60', '#e74c3c']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Gráfico de Tipos (Barras)
+        const ctxTipos = document.getElementById('chartTipos').getContext('2d');
+        if(chartTiposInstance) chartTiposInstance.destroy();
+        chartTiposInstance = new Chart(ctxTipos, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(dadosTipos),
+                datasets: [{
+                    label: 'Valor Total (R$)',
+                    data: Object.values(dadosTipos),
+                    backgroundColor: '#3498db'
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    function carregarParaEditar(i) {
+        const item = obras[i];
+        document.getElementById('editIndex').value = i;
+        document.getElementById('empresa').value = item.empresa;
+        document.getElementById('obra').value = item.obra;
+        document.getElementById('tipoObra').value = item.tipo || '';
+        document.getElementById('valor').value = item.valor;
+        document.getElementById('checkPaga').checked = item.isPaga;
+        document.getElementById('checkEmpenhada').checked = item.isEmpenhada;
+        document.getElementById('dataPagamento').value = item.data || '';
+        document.getElementById('empenho').value = item.empenho || '';
+        document.getElementById('obs').value = item.obs || '';
+        toggleStatusFields();
+        document.getElementById('tituloForm').innerText = "Editando Registro";
+        document.getElementById('btnSalvar').style.display = 'none';
+        document.getElementById('btnAtualizar').style.display = 'block';
+        document.getElementById('btnCancelar').style.display = 'block';
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function excluirObra(i) {
+        if(confirm("Apagar obra?")) {
+            obras.splice(i, 1);
+            localStorage.setItem('sgo_obras_v3', JSON.stringify(obras));
+            renderizarTabela();
+        }
+    }
+
+    function limparFormulario() {
+        document.querySelectorAll('.sidebar input:not([type=checkbox]), .sidebar textarea, .sidebar select').forEach(i => i.value = '');
+        document.querySelectorAll('.sidebar input[type=checkbox]').forEach(i => i.checked = false);
+        document.getElementById('editIndex').value = "-1";
+        document.getElementById('tituloForm').innerText = "Cadastro";
+        document.getElementById('btnSalvar').style.display = 'block';
+        document.getElementById('btnAtualizar').style.display = 'none';
+        document.getElementById('btnCancelar').style.display = 'none';
+        toggleStatusFields();
+        renderizarTabela();
+    }
+
+    function fazerBackup() {
+        const blob = new Blob([JSON.stringify({ obras, empresas: empresasDB })], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `SGO_Backup.json`;
+        a.click();
+    }
+
+    function importarBackup(event) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                obras = data.obras || [];
+                empresasDB = data.empresas || {};
+                localStorage.setItem('sgo_obras_v3', JSON.stringify(obras));
+                localStorage.setItem('sgo_empresas_db_v3', JSON.stringify(empresasDB));
+                renderizarTabela();
+                alert("Sucesso!");
+            } catch(err) { alert("Erro!"); }
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+</script>
+</body>
+</html>

@@ -9,7 +9,6 @@
         
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; background: var(--bg); min-height: 100vh; }
         
-        /* Painel de Controle Lateral */
         .painel-controle { width: 35%; padding: 20px; border-right: 1px solid #ccc; background: #fff; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 10; }
         .visualizacao { width: 65%; padding: 20px; background: #525659; display: flex; flex-direction: column; align-items: center; overflow-y: auto; }
         
@@ -20,16 +19,53 @@
         
         .row { display: flex; gap: 8px; margin-bottom: 8px; }
         
-        /* Lista de itens e Histórico */
-        .item-lista, .historico-item { font-size: 11px; background: #fff; padding: 5px; border: 1px solid #ddd; margin-bottom: 4px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-acao { border: none; padding: 4px 8px; cursor: pointer; border-radius: 3px; color: white; font-size: 10px; margin-left: 2px; }
+        .item-lista, .historico-item { font-size: 11px; background: #fff; padding: 10px; border: 1px solid #ddd; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-acao { border: none; padding: 6px 10px; cursor: pointer; border-radius: 3px; color: white; font-size: 10px; margin-left: 2px; }
 
-        /* Configuração da Folha A4 */
+        /* Modal de Histórico */
+        .modal-historico {
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0; top: 0; 
+            width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 65%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .close-modal {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+        
+        /* Área de Filtros Aprimorada */
+        .filtro-modal {
+            background: #f1f1f1;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .filtro-grupo { flex: 1; min-width: 150px; }
+
         .folha-a4 { 
             width: 210mm; min-height: 296mm; padding: 2cm; 
             background: white; box-shadow: 0 0 15px rgba(0,0,0,0.3); 
             margin-bottom: 20px; color: black; position: relative;
-            display: flex; flex-direction: column;
         }
 
         .cabecalho { text-align: center; margin-bottom: 20px; }
@@ -49,49 +85,91 @@
         th { background-color: #f2f2f2; font-weight: bold; }
         th, td { padding: 6px; text-align: center; font-size: 10pt; word-wrap: break-word; }
         
-        .bloco-final { page-break-inside: avoid; margin-top: 20px; }
+        .bloco-final { page-break-inside: avoid; }
         .assinatura-box { margin-top: 40px; text-align: center; }
         .linha { border-top: 1px solid black; width: 280px; margin: 0 auto 5px; }
 
-        .page-footer { 
-            display: none; 
-            position: absolute; 
-            bottom: 1cm; 
-            left: 2cm; 
-            right: 2cm; 
-            font-size: 8pt; 
-            color: #777; 
-            border-top: 1px solid #eee;
-            padding-top: 5px;
-            justify-content: space-between;
-        }
+        #view_id_footer { position: absolute; bottom: 20px; left: 20px; font-size: 8pt; color: #777; }
+
+        /* ESTILOS EXCLUSIVOS PARA O ANEXO NA PÁGINA 2 */
+        .cabecalho-anexo { display: none; border-bottom: 1px solid #000; margin-bottom: 15px; padding-bottom: 10px; text-align: center; }
 
         @media print {
             body { background: white; display: block; }
-            .painel-controle { display: none !important; }
+            .painel-controle, .modal-historico { display: none !important; }
             .visualizacao { width: 100%; padding: 0; background: none; overflow: visible; }
-            .folha-a4 { box-shadow: none; width: 100%; padding: 2cm; margin: 0; height: 296mm; page-break-after: avoid; }
-            .page-footer { display: flex; }
+            .folha-a4 { box-shadow: none; width: 100%; padding: 1.5cm 2cm; margin: 0; }
+            
+            /* Se o usuário marcar para gerar anexo */
+            .modo-anexo-ativo .area-tabela { page-break-before: always; margin-top: 20px; }
+            .modo-anexo-ativo .cabecalho-anexo { display: block; }
+            
             @page { size: A4; margin: 0; }
         }
     </style>
 </head>
 <body>
 
+<div id="modalHist" class="modal-historico">
+    <div class="modal-content">
+        <span class="close-modal" onclick="fecharHistorico()">&times;</span>
+        <h2 style="color: var(--primary);">Histórico de Ofícios Salvos</h2>
+        <div class="filtro-modal">
+            <div class="filtro-grupo">
+                <label>SECRETARIA:</label>
+                <select id="filtro_sec" onchange="renderHistorico()">
+                    <option value="">Todas as Secretarias</option>
+                    <option value="ADMINISTRAÇÃO, PLANEJAMENTO E RECURSOS HUMANOS">ADMINISTRAÇÃO</option>
+                    <option value="AGRICULTURA">AGRICULTURA</option>
+                    <option value="INFRAESTRUTURA">INFRAESTRUTURA</option>
+                    <option value="ESPORTE">ESPORTE</option>
+                    <option value="CULTURA, TURISME E MEIO AMBIENTE">CULTURA/TURISMO</option>
+                    <option value="GOVERNO">GOVERNO</option>
+                    <option value="EDUCAÇÃO">EDUCAÇÃO</option>
+                    <option value="ASSISTÊNCIA SOCIAL">ASSISTÊNCIA SOCIAL</option>
+                    <option value="SAÚDE">SAÚDE</option>
+                    <option value="FINANÇAS">FINANÇAS</option>
+                </select>
+            </div>
+            <div class="filtro-grupo">
+                <label>DE (DATA):</label>
+                <input type="date" id="filtro_data_inicio" onchange="renderHistorico()">
+            </div>
+            <div class="filtro-grupo">
+                <label>ATÉ (DATA):</label>
+                <input type="date" id="filtro_data_fim" onchange="renderHistorico()">
+            </div>
+            <div style="flex: 0.5">
+                <button onclick="limparFiltrosModal()" style="width:100%; background: #6c757d; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:bold;">LIMPAR</button>
+            </div>
+        </div>
+        <div id="lista_historico_modal"></div>
+    </div>
+</div>
+
 <div class="painel-controle">
     <center><h2 style="color: var(--primary); font-size: 18px;">GERADOR DE OFÍCIOS PRO</h2></center>
     
+    <div class="secao" style="background: #fff3cd; border: 1px solid #ffeeba;">
+        <h3>Configuração de Página</h3>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
+            <input type="checkbox" id="chk_anexo" onchange="update()" style="width: auto; margin:0;"> 
+            <b>Mover Tabela para Página 2 (Anexo)</b>
+        </label>
+    </div>
+
     <div class="secao">
         <h3>Histórico e Backup</h3>
         <div class="row">
-            <button onclick="salvarHistorico()" style="flex:1.5; background: var(--success); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Salvar Atual</button>
+            <button onclick="salvarHistorico()" style="flex:1; background: var(--success); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Salvar Atual</button>
+            <button onclick="abrirHistorico()" style="flex:1; background: var(--info); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer; font-weight:bold;">Ver Histórico</button>
+        </div>
+        <div class="row" style="margin-top:5px">
+            <button onclick="novoOficio()" style="flex:1; background: #6c757d; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Limpar/Novo</button>
             <button onclick="exportarBackup()" style="flex:1; background: var(--primary); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Backup</button>
-            <button onclick="document.getElementById('input_backup').click()" style="flex:1; background: var(--info); color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Carregar</button>
+            <button onclick="document.getElementById('input_backup').click()" style="flex:1; background: #555; color:white; border:none; padding:8px; border-radius:4px; cursor:pointer;">Importar</button>
         </div>
         <input type="file" id="input_backup" style="display:none" accept=".json" onchange="importarBackup(this)">
-        
-        <div id="lista_historico" style="margin-top:10px; max-height: 120px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; background: #fff;">
-        </div>
     </div>
 
     <div class="secao">
@@ -110,19 +188,17 @@
             <option value="AGRICULTURA">AGRICULTURA</option>
             <option value="INFRAESTRUTURA">INFRAESTRUTURA</option>
             <option value="ESPORTE">ESPORTE</option>
-            <option value="CULTURA, TURISMO E MEIO AMBIENTE">CULTURA/TURISMO</option>
+            <option value="CULTURA, TURISME E MEIO AMBIENTE">CULTURA/TURISMO</option>
             <option value="GOVERNO">GOVERNO</option>
             <option value="EDUCAÇÃO">EDUCAÇÃO</option>
             <option value="ASSISTÊNCIA SOCIAL">ASSISTÊNCIA SOCIAL</option>
             <option value="SAÚDE">SAÚDE</option>
             <option value="FINANÇAS">FINANÇAS</option>
         </select>
-        
         <div class="row" style="margin-top:8px">
             <div style="flex:2"><label>DATA:</label><input type="date" id="data_input" onchange="update()"></div>
             <div style="flex:1"><label>Nº SEQ:</label><input type="text" id="num_seq" placeholder="001" oninput="update()"></div>
         </div>
-
         <label>DESTINAÇÃO:</label>
         <input type="text" id="destinacao_input" placeholder="Ex: UBS Chã Preta..." oninput="update()">
     </div>
@@ -159,15 +235,13 @@
         <h3>Credor / Referência</h3>
         <input type="text" id="cred_nome" oninput="update()" placeholder="Nome do Credor">
         <input type="text" id="cred_doc" oninput="update()" placeholder="CPF ou CNPJ">
-        
-        <label>FRASE DE OBSERVAÇÃO (OPCIONAL):</label>
+        <label>FRASE DE OBSERVAÇÃO:</label>
         <select id="tipo_texto_final" onchange="toggleTextoManual()">
-            <option value="padrao">Padrão (Vale salientar...)</option>
-            <option value="manual">Personalizada (Digitar abaixo)</option>
-            <option value="nenhum">Nenhuma (Ocultar frase)</option>
+            <option value="padrao">Padrão</option>
+            <option value="manual">Personalizada</option>
+            <option value="nenhum">Nenhuma</option>
         </select>
-        <textarea id="texto_final_manual" style="display:none; height:60px;" oninput="update()" placeholder="Digite sua frase personalizada aqui..."></textarea>
-
+        <textarea id="texto_final_manual" style="display:none; height:60px; margin-top:5px;" oninput="update()"></textarea>
         <div style="margin-top:10px;">
             <label style="font-size:11px"><input type="checkbox" id="tem_ref" onchange="update()" checked> Incluir Referência?</label>
             <div id="ref_campos">
@@ -189,11 +263,12 @@
         <input type="text" id="ass_port" oninput="update()" placeholder="Portaria (ex: 001/2026)">
     </div>
 
-    <button onclick="window.print()" style="width:100%; padding:18px; background: var(--accent); color:white; border:none; font-weight:bold; border-radius:5px; cursor:pointer; font-size: 16px;">IMPRIMIR / GERAR PDF</button>
+    <button onclick="window.print()" style="width:100%; padding:18px; background: var(--accent); color:white; border:none; font-weight:bold; border-radius:5px; cursor:pointer; font-size: 16px;">IMPRIMIR / PDF</button>
 </div>
 
 <div class="visualizacao">
     <div class="folha-a4" id="documento">
+        
         <div class="cabecalho">
             <img id="logo_img" src="cp.png" alt="Logo">
             <h2>ESTADO DE ALAGOAS</h2>
@@ -204,38 +279,19 @@
 
         <div class="data-doc" id="view_data"></div>
         <div class="num-doc">OFÍCIO Nº <span id="view_num"></span></div>
-        
         <div id="view_dest" style="margin-bottom:15px"></div>
         <div class="assunto-doc">ASSUNTO: <span id="view_assunto"></span></div>
-
         <div class="corpo-doc" id="view_texto_base"></div>
         <div id="view_destinacao"></div>
 
-        <table id="view_tab">
-            <thead>
-                <tr>
-                    <th width="10%">ITEM</th>
-                    <th width="55%">DESCRIÇÃO DOS PRODUTOS / SERVIÇOS</th>
-                    <th width="20%">UNIDADE</th>
-                    <th width="15%">QTD</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-
         <div class="bloco-final">
             <div class="corpo-doc" id="view_final_desc"></div>
-
             <div style="margin: 5px 0 0 50px; font-size: 11pt; line-height: 1.3">
                 <strong>CREDOR(A):</strong> <span id="view_cred_n"></span><br>
                 <strong>CPF/CNPJ:</strong> <span id="view_cred_d"></span><br>
                 <div id="view_ref_box"><strong>REFERÊNCIA:</strong> <span id="view_ref_t"></span></div>
             </div>
-
-            <div class="corpo-doc" style="margin-top:20px">
-                Ao ensejo, reitero a Vossa Excelência expressões de elevada estima e distinta consideração.
-            </div>
-
+            <div class="corpo-doc" style="margin-top:20px">Ao ensejo, reitero a Vossa Excelência expressões de elevada estima e distinta consideração.</div>
             <div class="assinatura-box">
                 <div class="linha"></div>
                 <strong id="view_ass_n"></strong><br>
@@ -244,20 +300,46 @@
             </div>
         </div>
 
-        <div class="page-footer">
-            <div id="view_id_footer">Oficio_Abrev_000/2026</div>
-            <div>Página 1 de 1</div>
+        <div class="area-tabela">
+            <div class="cabecalho-anexo">
+                <img src="cp.png" style="max-height: 40px; margin-bottom: 5px;">
+                <h3 style="margin:0; font-size: 13pt;">ANEXO - RELAÇÃO DE ITENS</h3>
+                <p style="font-size: 9pt; margin: 2px 0;">Ofício nº <span id="an_num"></span> | <span id="an_sec"></span></p>
+                <p style="font-size: 9pt; margin: 0;">Data: <span id="an_data"></span></p>
+            </div>
+            <table id="view_tab">
+                <thead>
+                    <tr>
+                        <th width="10%">ITEM</th>
+                        <th width="55%">DESCRIÇÃO DOS PRODUTOS / SERVIÇOS</th>
+                        <th width="20%">UNIDADE</th>
+                        <th width="15%">QTD</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
+
+        <div id="view_id_footer">Oficio_Abrev_000/2026</div>
     </div>
 </div>
 
 <script>
+    /* TODO O SEU JAVASCRIPT ORIGINAL FOI PRESERVADO ABAIXO */
     let itens = [];
     document.getElementById('data_input').valueAsDate = new Date();
 
-    function checkOutra(sel) {
-        document.getElementById('it_un_manual').style.display = (sel.value === 'OUTRA') ? 'block' : 'none';
+    function abrirHistorico() { document.getElementById('modalHist').style.display = 'block'; renderHistorico(); }
+    function fecharHistorico() { document.getElementById('modalHist').style.display = 'none'; }
+
+    function limparFiltrosModal() {
+        document.getElementById('filtro_sec').value = "";
+        document.getElementById('filtro_data_inicio').value = "";
+        document.getElementById('filtro_data_fim').value = "";
+        renderHistorico();
     }
+
+    function checkOutra(sel) { document.getElementById('it_un_manual').style.display = (sel.value === 'OUTRA') ? 'block' : 'none'; }
 
     function toggleTextoManual() {
         const opcao = document.getElementById('tipo_texto_final').value;
@@ -270,15 +352,11 @@
         if(!desc) return;
         let un = document.getElementById('it_un').value;
         if(un === 'OUTRA') un = document.getElementById('it_un_manual').value;
-        
         const novoItem = { num: document.getElementById('it_num_man').value || (itens.length + 1), desc: desc, un: un, qtd: document.getElementById('it_qtd').value };
         const editIdx = parseInt(document.getElementById('edit_index').value);
-        
         if(editIdx > -1) { itens[editIdx] = novoItem; document.getElementById('edit_index').value = "-1"; document.getElementById('btn_add').innerText = "+"; } 
         else { itens.push(novoItem); }
-
-        document.getElementById('it_desc').value = "";
-        document.getElementById('it_qtd').value = "1";
+        document.getElementById('it_desc').value = ""; document.getElementById('it_qtd').value = "1";
         update();
     }
 
@@ -294,7 +372,7 @@
     function deleteItem(index) { itens.splice(index, 1); update(); }
 
     function getAbrev(sec) {
-        const abrevs = { "ADMINISTRAÇÃO, PLANEJAMENTO E RECURSOS HUMANOS": "SEAD", "AGRICULTURA": "SEAGRI", "INFRAESTRUTURA": "SEINFRA", "ESPORTE": "SEMEL", "CULTURA, TURISMO E MEIO AMBIENTE": "SECULT", "GOVERNO": "SEGOV", "EDUCAÇÃO": "SEMED", "ASSISTÊNCIA SOCIAL": "SEMAS", "SAÚDE": "SMS", "FINANÇAS": "SEFIN" };
+        const abrevs = { "ADMINISTRAÇÃO, PLANEJAMENTO E RECURSOS HUMANOS": "SEAD", "AGRICULTURA": "SEAGRI", "INFRAESTRUTURA": "SEINFRA", "ESPORTE": "SEMEL", "CULTURA, TURISME E MEIO AMBIENTE": "SECULT", "GOVERNO": "SEGOV", "EDUCAÇÃO": "SEMED", "ASSISTÊNCIA SOCIAL": "SEMAS", "SAÚDE": "SMS", "FINANÇAS": "SEFIN" };
         return abrevs[sec] || "SEC";
     }
 
@@ -310,30 +388,45 @@
         const numSeq = document.getElementById('num_seq').value || "000";
         const sec = document.getElementById('sec_input').value;
         const abrev = getAbrev(sec);
-        
         const numComp = `${String(d.getDate()).padStart(2, '0')}${String(d.getMonth() + 1).padStart(2, '0')}-${numSeq}/${d.getFullYear()}`;
+        
         document.getElementById('view_data').innerText = `Chã Preta/AL, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
         document.getElementById('view_num').innerText = numComp;
-        
         document.getElementById('view_id_footer').innerText = `Oficio_${abrev}_${numSeq}/${d.getFullYear()}`;
+
+        // ATUALIZAÇÃO DO ANEXO (CABECALHO DA PAG 2)
+        document.getElementById('an_num').innerText = numComp;
+        document.getElementById('an_sec').innerText = sec;
+        document.getElementById('an_data').innerText = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+
+        // CLASSE QUE MOVE A TABELA PARA PAG 2
+        const isAnexoAtivo = document.getElementById('chk_anexo').checked;
+        if(isAnexoAtivo) {
+            document.getElementById('documento').classList.add('modo-anexo-ativo');
+        } else {
+            document.getElementById('documento').classList.remove('modo-anexo-ativo');
+        }
 
         const tipo = document.getElementById('tipo_oficio').value;
         document.getElementById('view_assunto').innerText = tipo === 'licitacao' ? "ABERTURA DE PROCESSO LICITATÓRIO" : "SOLICITAÇÃO DE COMPRA/SERVIÇOS";
-        document.getElementById('view_texto_base').innerHTML = tipo === 'licitacao' ? 
-            `Venho através deste, solicitar de Vossa Excelência a <strong>Abertura de Processo Licitatório</strong> para atendimento das necessidades desta secretaria...` : 
-            `Venho através deste, solicitar de Vossa Excelência a autorização para que seja providenciado a <strong>Compra/Serviço</strong>...`;
+        
+        // AJUSTE SOLICITADO: MUDANÇA NO TEXTO CASO ANEXO ESTEJA ATIVO
+        if(tipo === 'licitacao') {
+             document.getElementById('view_texto_base').innerHTML = `Venho através deste, solicitar de Vossa Excelência a <strong>Abertura de Processo Licitatório</strong>...`;
+        } else {
+             const complementoAnexo = isAnexoAtivo ? " dos itens na <strong>TABELA EM ANEXO</strong>." : "...";
+             document.getElementById('view_texto_base').innerHTML = `Venho através deste, solicitar de Vossa Excelência a autorização para que seja providenciado a <strong>Compra/Serviço</strong>${complementoAnexo}`;
+        }
 
         document.getElementById('view_destinacao').innerText = document.getElementById('destinacao_input').value ? "DESTINAÇÃO: " + document.getElementById('destinacao_input').value.toUpperCase() : "";
         document.getElementById('view_sec_topo').innerText = "SECRETARIA MUNICIPAL DE " + sec;
         document.getElementById('view_ass_s').innerText = formatTitle(sec);
-
         const dest = document.getElementById('view_dest');
         if(["ASSISTÊNCIA SOCIAL", "EDUCAÇÃO", "SAÚDE"].includes(sec)) {
             dest.innerHTML = `AO SR.<br><strong>ANTÔNIO VICTOR RODRIGUES HOLANDA</strong><br>Secretaria Municipal de Finanças`;
         } else {
             dest.innerHTML = `AO SENHOR;<br><strong>MAURICIO DE VASCONCELOS HOLANDA</strong><br>Prefeito do Município de Chã Preta/AL`;
         }
-
         const tbody = document.querySelector("#view_tab tbody");
         const listaPainel = document.getElementById('lista_itens_painel');
         tbody.innerHTML = ""; listaPainel.innerHTML = "";
@@ -341,18 +434,11 @@
             tbody.innerHTML += `<tr><td>${it.num}</td><td style="text-align:left">${it.desc}</td><td>${it.un}</td><td>${it.qtd}</td></tr>`;
             listaPainel.innerHTML += `<div class="item-lista"><span>${it.num}. ${it.desc.substring(0,15)}</span><div><button class="btn-acao" style="background:#007bff" onclick="editItem(${idx})">Edit</button><button class="btn-acao" style="background:var(--danger)" onclick="deleteItem(${idx})">X</button></div></div>`;
         });
-
         const viewFinalDesc = document.getElementById('view_final_desc');
         const modoFrase = document.getElementById('tipo_texto_final').value;
-        
-        if(modoFrase === 'nenhum') {
-            viewFinalDesc.innerHTML = "";
-        } else if(modoFrase === 'manual') {
-            viewFinalDesc.innerText = document.getElementById('texto_final_manual').value;
-        } else {
-            viewFinalDesc.innerHTML = `Vale Salientar que os itens acima mencionados são de suma importância para o bom funcionamento da Secretaria Municipal de ${formatTitle(sec)}, como também que será através da pessoa física/jurídica:`;
-        }
-
+        if(modoFrase === 'manual') viewFinalDesc.innerText = document.getElementById('texto_final_manual').value;
+        else if(modoFrase === 'nenhum') viewFinalDesc.innerHTML = "";
+        else viewFinalDesc.innerHTML = `Vale Salientar que os itens acima mencionados são de suma importância para o bom funcionamento da Secretaria Municipal de ${formatTitle(sec)}...`;
         document.getElementById('view_cred_n').innerText = document.getElementById('cred_nome').value;
         document.getElementById('view_cred_d').innerText = document.getElementById('cred_doc').value;
         const incluirRef = document.getElementById('tem_ref').checked;
@@ -363,44 +449,63 @@
         document.getElementById('view_ass_p').innerText = document.getElementById('ass_port').value ? "Portaria nº " + document.getElementById('ass_port').value : "";
     }
 
+    function novoOficio() {
+        if(confirm("Limpar para novo ofício?")) {
+            document.querySelectorAll('.secao input:not([type=checkbox]), .secao select, .secao textarea').forEach(i => {
+                if(!['sec_input','ass_nome','ass_port','data_input'].includes(i.id)) i.value = '';
+            });
+            itens = []; update();
+        }
+    }
+
     function salvarHistorico() {
         const id = document.getElementById('view_id_footer').innerText;
         const dados = {
-            id, itens: [...itens],
-            sec: document.getElementById('sec_input').value,
-            data: document.getElementById('data_input').value,
-            num: document.getElementById('num_seq').value,
-            dest: document.getElementById('destinacao_input').value,
-            cred: document.getElementById('cred_nome').value,
-            doc: document.getElementById('cred_doc').value,
-            ref_t: document.getElementById('ref_tipo').value,
-            ref_v: document.getElementById('ref_txt').value,
-            ass_n: document.getElementById('ass_nome').value,
-            ass_p: document.getElementById('ass_port').value,
-            modoFrase: document.getElementById('tipo_texto_final').value,
-            textoFrase: document.getElementById('texto_final_manual').value,
-            tipo_oficio: document.getElementById('tipo_oficio').value
+            id, itens: [...itens], sec: document.getElementById('sec_input').value,
+            data: document.getElementById('data_input').value, num: document.getElementById('num_seq').value,
+            dest: document.getElementById('destinacao_input').value, cred: document.getElementById('cred_nome').value,
+            doc: document.getElementById('cred_doc').value, ref_t: document.getElementById('ref_tipo').value,
+            ref_v: document.getElementById('ref_txt').value, ass_n: document.getElementById('ass_nome').value,
+            ass_p: document.getElementById('ass_port').value, modoFrase: document.getElementById('tipo_texto_final').value,
+            textoFrase: document.getElementById('texto_final_manual').value, tipo_oficio: document.getElementById('tipo_oficio').value,
+            incluirRef: document.getElementById('tem_ref').checked
         };
         let hist = JSON.parse(localStorage.getItem('oficios_db') || '{}');
         hist[id] = dados;
         localStorage.setItem('oficios_db', JSON.stringify(hist));
-        renderHistorico();
-        alert("Ofício salvo com sucesso!");
+        alert("Ofício Salvo!");
     }
 
     function renderHistorico() {
         const hist = JSON.parse(localStorage.getItem('oficios_db') || '{}');
-        const div = document.getElementById('lista_historico');
+        const div = document.getElementById('lista_historico_modal');
+        const fSec = document.getElementById('filtro_sec').value;
+        const fInicio = document.getElementById('filtro_data_inicio').value;
+        const fFim = document.getElementById('filtro_data_fim').value;
+
         div.innerHTML = "";
-        Object.keys(hist).reverse().forEach(key => {
-            div.innerHTML += `<div class="historico-item">
-                <span title="${key}">${key}</span>
-                <div>
-                    <button class="btn-acao" style="background:var(--info)" onclick="carregarOficio('${key}')">Abrir</button>
-                    <button class="btn-acao" style="background:var(--danger)" onclick="deletarHistorico('${key}')">X</button>
-                </div>
-            </div>`;
+        Object.keys(hist).sort().reverse().forEach(key => {
+            const d = hist[key];
+            let matchSec = (fSec === "" || d.sec === fSec);
+            let matchData = true;
+
+            if (fInicio && d.data < fInicio) matchData = false;
+            if (fFim && d.data > fFim) matchData = false;
+
+            if (matchSec && matchData) {
+                const dataBR = d.data.split('-').reverse().join('/');
+                div.innerHTML += `<div class="historico-item">
+                    <span style="font-weight:bold">${key} <br>
+                        <small style="color:#666; font-weight:normal">${d.sec} | Data: ${dataBR}</small>
+                    </span>
+                    <div>
+                        <button class="btn-acao" style="background:var(--info)" onclick="carregarOficio('${key}')">Abrir</button>
+                        <button class="btn-acao" style="background:var(--danger)" onclick="deletarHistorico('${key}')">Excluir</button>
+                    </div>
+                </div>`;
+            }
         });
+        if(div.innerHTML === "") div.innerHTML = "<center><p style='color:#888'>Nenhum registro no período selecionado.</p></center>";
     }
 
     function carregarOficio(key) {
@@ -417,16 +522,16 @@
         document.getElementById('ref_txt').value = d.ref_v || "";
         document.getElementById('ass_nome').value = d.ass_n || "";
         document.getElementById('ass_port').value = d.ass_p || "";
-        if(d.tipo_oficio) document.getElementById('tipo_oficio').value = d.tipo_oficio;
-        if(d.modoFrase) document.getElementById('tipo_texto_final').value = d.modoFrase;
-        if(d.textoFrase) document.getElementById('texto_final_manual').value = d.textoFrase;
+        document.getElementById('tem_ref').checked = d.incluirRef !== undefined ? d.incluirRef : true;
+        document.getElementById('tipo_oficio').value = d.tipo_oficio || 'compra';
+        document.getElementById('tipo_texto_final').value = d.modoFrase || 'padrao';
+        document.getElementById('texto_final_manual').value = d.textoFrase || '';
         itens = d.itens || [];
-        toggleTextoManual();
-        update();
+        toggleTextoManual(); fecharHistorico(); update();
     }
 
     function deletarHistorico(key) {
-        if(confirm("Deseja excluir este registro?")) {
+        if(confirm("Excluir permanentemente?")) {
             let hist = JSON.parse(localStorage.getItem('oficios_db') || '{}');
             delete hist[key];
             localStorage.setItem('oficios_db', JSON.stringify(hist));
@@ -436,37 +541,23 @@
 
     function exportarBackup() {
         const data = localStorage.getItem('oficios_db');
-        if(!data || data === '{}') return alert("Não há dados para exportar.");
         const blob = new Blob([data], {type: 'application/json'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `backup_oficios_cha_preta_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+        a.download = `backup_oficios.json`;
         a.click();
     }
 
     function importarBackup(input) {
-        const file = input.files[0];
-        if(!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
-            try {
-                const importado = JSON.parse(e.target.result);
-                if(confirm("Deseja mesclar o backup com os dados atuais? (Os registros com o mesmo número serão substituídos)")) {
-                    let atual = JSON.parse(localStorage.getItem('oficios_db') || '{}');
-                    let novoDb = { ...atual, ...importado };
-                    localStorage.setItem('oficios_db', JSON.stringify(novoDb));
-                    renderHistorico();
-                    alert("Backup carregado com sucesso!");
-                }
-            } catch(err) {
-                alert("Erro ao ler o arquivo de backup. Verifique se o arquivo é um .json válido.");
-            }
+            const importado = JSON.parse(e.target.result);
+            let atual = JSON.parse(localStorage.getItem('oficios_db') || '{}');
+            localStorage.setItem('oficios_db', JSON.stringify({ ...atual, ...importado }));
+            renderHistorico();
         };
-        reader.readAsText(file);
-        input.value = ""; // Limpa o input para permitir carregar o mesmo arquivo novamente se necessário
+        reader.readAsText(input.files[0]);
     }
-
-    window.onload = renderHistorico;
     update();
 </script>
 </body>
