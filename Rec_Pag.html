@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
     <style>
-        :root { --primary: #2c3e50; --success: #27ae60; --warning: #f39c12; --danger: #e74c3c; --bg: #f4f7f6; }
+        :root { --primary: #2c3e50; --success: #27ae60; --warning: #f39c12; --danger: #e74c3c; --bg: #f4f7f6; --gray: #607d8b; }
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: var(--bg); overflow: hidden; }
         .main-container { display: flex; height: 100vh; gap: 15px; padding: 15px; box-sizing: border-box; }
         
@@ -26,8 +26,13 @@
         button { cursor: pointer; border: none; padding: 10px; border-radius: 5px; font-weight: bold; }
         .btn-add { background: var(--success); color: white; flex: 1; }
         .btn-pdf { background: var(--primary); color: white; width: 100%; margin-top: 10px; }
+        .btn-save-hist { background: var(--warning); color: white; width: 100%; margin-top: 5px; }
+        .btn-view-hist { background: var(--gray); color: white; width: 100%; margin-top: 5px; }
         .btn-clear { background: #95a5a6; color: white; font-size: 0.7rem; padding: 5px; }
         
+        .backup-section { border-top: 1px solid #eee; margin-top: 15px; padding-top: 10px; display: flex; gap: 5px; }
+        .btn-backup { flex: 1; font-size: 0.7rem; background: #eee; padding: 5px; color: #333; }
+
         /* Tabela */
         .table-wrapper { flex: 1; overflow-y: auto; margin-top: 10px; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -40,6 +45,15 @@
 
         .summary-box { background: #f8f9fa; padding: 12px; border-radius: 5px; margin-top: 15px; font-size: 0.8rem; border-left: 4px solid var(--primary); }
         .total-highlight { font-weight: bold; font-size: 1rem; color: var(--primary); display: block; margin-bottom: 5px; }
+
+        /* Estilos do Modal */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+        .modal-content { background: white; margin: 5% auto; padding: 20px; width: 90%; max-width: 800px; border-radius: 10px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); margin-bottom: 15px; }
+        .filter-container { background: #f1f1f1; padding: 10px; border-radius: 5px; display: flex; gap: 10px; align-items: flex-end; margin-bottom: 15px; }
+        .filter-container div { flex: 1; }
+        .hist-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px; align-items: center; }
+        .hist-item:hover { background: #f9f9f9; }
     </style>
 </head>
 <body>
@@ -104,7 +118,15 @@
         </form>
         
         <button type="button" class="btn-pdf" onclick="gerarPDF()">Gerar Relatório PDF</button>
+        <button type="button" class="btn-save-hist" onclick="finalizarESalvar()">Finalizar e Salvar Histórico</button>
+        <button type="button" class="btn-view-hist" onclick="abrirModal()">Ver Histórico (Período)</button>
         <button type="button" class="btn-clear" style="width:100%; margin-top:5px;" onclick="limparTudo()">Limpar Planilha Atual</button>
+
+        <div class="backup-section">
+            <button class="btn-backup" onclick="exportarBackup()">Backup ⬇️</button>
+            <button class="btn-backup" onclick="document.getElementById('inputBackup').click()">Carregar ⬆️</button>
+            <input type="file" id="inputBackup" style="display:none" accept=".json" onchange="importarBackup(event)">
+        </div>
     </aside>
 
     <main class="panel-view">
@@ -132,6 +154,31 @@
             </div>
         </div>
     </main>
+</div>
+
+<div id="modalHistorico" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Histórico de Relatórios Salvos</h3>
+            <span style="cursor:pointer; font-size: 24px;" onclick="fecharModal()">&times;</span>
+        </div>
+        
+        <div class="filter-container">
+            <div>
+                <label style="font-size: 11px;">Data Inicial:</label>
+                <input type="date" id="filtroInicio">
+            </div>
+            <div>
+                <label style="font-size: 11px;">Data Final:</label>
+                <input type="date" id="filtroFim">
+            </div>
+            <button onclick="filtrarHistorico()" style="background:var(--primary); color:white; padding: 8px 15px; border-radius:5px;">Filtrar</button>
+            <button onclick="renderizarHistorico()" style="background:#ddd; padding: 8px 10px; border-radius:5px;">Limpar</button>
+        </div>
+
+        <div id="corpoHistorico">
+            </div>
+    </div>
 </div>
 
 <script>
@@ -195,7 +242,7 @@
     }
 
     function limparTudo() {
-        if(confirm("Isso apagará todos os dados da tabela atual. O banco de credores continuará salvo. Deseja continuar?")) {
+        if(confirm("Isso apagará todos os dados da tabela atual. Deseja continuar?")) {
             pagamentos = [];
             salvarLocal();
             atualizarTela();
@@ -249,6 +296,121 @@
         document.getElementById('editIndex').value = i;
         document.getElementById('mainBtn').innerText = "Atualizar Dados";
         document.getElementById('mainBtn').style.background = "var(--warning)";
+    }
+
+    // --- NOVAS FUNÇÕES: HISTÓRICO E BACKUP ---
+
+    function finalizarESalvar() {
+        if (pagamentos.length === 0) return alert("Não há dados para salvar!");
+
+        const historico = JSON.parse(localStorage.getItem('hist_pagamentos_cha_preta') || '[]');
+        const novoRegistro = {
+            timestamp: new Date().getTime(),
+            dataExibicao: new Date().toLocaleDateString('pt-br'),
+            total: document.getElementById('totalGeral').innerText,
+            dados: [...pagamentos]
+        };
+
+        historico.push(novoRegistro);
+        localStorage.setItem('hist_pagamentos_cha_preta', JSON.stringify(historico));
+        
+        alert("Relatório salvo no histórico com sucesso!");
+        pagamentos = [];
+        salvarLocal();
+        atualizarTela();
+    }
+
+    function abrirModal() {
+        document.getElementById('modalHistorico').style.display = 'block';
+        renderizarHistorico();
+    }
+
+    function fecharModal() {
+        document.getElementById('modalHistorico').style.display = 'none';
+    }
+
+    function renderizarHistorico(dadosFiltrados = null) {
+        const historico = dadosFiltrados || JSON.parse(localStorage.getItem('hist_pagamentos_cha_preta') || '[]');
+        const container = document.getElementById('corpoHistorico');
+        container.innerHTML = historico.length ? "" : "<p style='text-align:center; padding:20px;'>Nenhum registro encontrado.</p>";
+
+        [...historico].reverse().forEach((rel, index) => {
+            const div = document.createElement('div');
+            div.className = 'hist-item';
+            div.innerHTML = `
+                <div>
+                    <strong>Data: ${rel.dataExibicao}</strong><br>
+                    <small>${rel.total} | ${rel.dados.length} itens</small>
+                </div>
+                <div>
+                    <button onclick="carregarDoHistorico(${rel.timestamp})" style="background:var(--success); color:white; padding:5px 10px; border-radius:3px;">Abrir</button>
+                    <button onclick="excluirDoHistorico(${rel.timestamp})" style="background:var(--danger); color:white; padding:5px 10px; border-radius:3px; margin-left:5px;">X</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function filtrarHistorico() {
+        const inicio = document.getElementById('filtroInicio').value;
+        const fim = document.getElementById('filtroFim').value;
+        if(!inicio || !fim) return alert("Selecione as duas datas!");
+
+        const dInicio = new Date(inicio + "T00:00:00").getTime();
+        const dFim = new Date(fim + "T23:59:59").getTime();
+
+        const historico = JSON.parse(localStorage.getItem('hist_pagamentos_cha_preta') || '[]');
+        const filtrados = historico.filter(h => h.timestamp >= dInicio && h.timestamp <= dFim);
+        renderizarHistorico(filtrados);
+    }
+
+    function carregarDoHistorico(timestamp) {
+        const historico = JSON.parse(localStorage.getItem('hist_pagamentos_cha_preta') || '[]');
+        const registro = historico.find(h => h.timestamp === timestamp);
+        if(confirm("Carregar este relatório? Isso substituirá a tabela atual.")) {
+            pagamentos = registro.dados;
+            salvarLocal();
+            atualizarTela();
+            fecharModal();
+        }
+    }
+
+    function excluirDoHistorico(timestamp) {
+        if(confirm("Remover permanentemente este relatório do histórico?")) {
+            let historico = JSON.parse(localStorage.getItem('hist_pagamentos_cha_preta') || '[]');
+            historico = historico.filter(h => h.timestamp !== timestamp);
+            localStorage.setItem('hist_pagamentos_cha_preta', JSON.stringify(historico));
+            renderizarHistorico();
+        }
+    }
+
+    function exportarBackup() {
+        const dados = {
+            pagamentos: localStorage.getItem('pagamentos_cha_preta'),
+            historico: localStorage.getItem('hist_pagamentos_cha_preta'),
+            credores: localStorage.getItem('banco_credores')
+        };
+        const blob = new Blob([JSON.stringify(dados)], {type: "application/json"});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `backup_financas_${new Date().toLocaleDateString('pt-br').replace(/\//g,'-')}.json`;
+        a.click();
+    }
+
+    function importarBackup(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importado = JSON.parse(e.target.result);
+                if(confirm("Confirmar restauração do backup? Dados atuais serão mesclados.")) {
+                    if(importado.credores) localStorage.setItem('banco_credores', importado.credores);
+                    if(importado.historico) localStorage.setItem('hist_pagamentos_cha_preta', importado.historico);
+                    location.reload();
+                }
+            } catch(err) { alert("Arquivo de backup inválido."); }
+        };
+        reader.readAsText(file);
     }
 
     function gerarPDF() {
