@@ -1,84 +1,425 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório de Combustível</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Sistema de Combustível - Chã Preta/AL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; padding: 0; }
+            #printArea { display: block !important; width: 100%; border: none; }
+        }
+        .hidden-page { display: none; }
+        .modern-table { width: 100%; border-collapse: collapse; }
+        .modern-table th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; padding: 12px; border-bottom: 2px solid #e2e8f0; }
+        .modern-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #1e293b; }
+        
+        /* Ajuste de Fonte Padrão 10 para o Relatório */
+        .report-text-padrão { font-size: 10px !important; }
+    </style>
 </head>
-<body>
+<body class="bg-slate-50 min-h-screen">
 
-    <div class="container">
-        <h1>Formulário de Combustível</h1>
-        <form id="combustivel-form">
-            <div class="form-group">
-                <label for="posto">Posto de Combustível:</label>
-                <select id="posto">
-                    <option value="Posbral - Posto Bradão">Posbral - Posto Bradão</option>
-                    <option value="Auto Posto AS">Auto Posto AS</option>
-                </select>
+    <nav class="bg-slate-900 text-white p-4 no-print shadow-sm">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <span class="font-bold tracking-tight text-lg">CHÃ PRETA <span class="text-blue-400">FINANÇAS</span></span>
+            <div class="flex gap-6">
+                <button onclick="showPage('cadastro')" class="text-sm font-medium hover:text-blue-400 transition">Montar Relatório</button>
+                <button onclick="showPage('historico')" class="text-sm font-medium hover:text-blue-400 transition">Relatórios Salvos</button>
             </div>
-            
-            <div class="form-group">
-                <label for="lotacao">Lotação:</label>
-                <select id="lotacao" required>
-                    <option value="">Selecione a Lotação</option>
-                    <option value="Sec. Administração">Sec. Administração</option>
-                    <option value="Sec. Agricultura">Sec. Agricultura</option>
-                    <option value="Sec. Assistência">Sec. Assistência</option>
-                    <option value="Sec. Assistência (Conselho Tutelar)">Sec. Assistência (Conselho Tutelar)</option>
-                    <option value="Sec. Cultura">Sec. Cultura</option>
-                    <option value="Sec. Educação">Sec. Educação</option>
-                    <option value="Sec. Governo">Sec. Governo</option>
-                    <option value="Sec. Infraestrutura">Sec. Infraestrutura</option>
-                    <option value="Sec. Saúde">Sec. Saúde</option>
-                    <option value="Outros">Outros</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="tipo">Tipo de Combustível:</label>
-                <select id="tipo" required>
-                    <option value="">Selecione o Tipo</option>
-                    <option value="Gasolina Comum">Gasolina Comum</option>
-                    <option value="Diesel S10">Diesel S10</option>
-                    <option value="Etanol (Álcool Etílico)">Etanol (Álcool Etílico)</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="litros">Quantidade (Litros):</label>
-                <input type="number" id="litros" min="0" step="0.01">
-            </div>
-            
-            <div class="form-group">
-                <label for="valor">Valor (R$):</label>
-                <input type="number" id="valor" min="0" step="0.01" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="recurso">Tipo de Recurso:</label>
-                <select id="recurso">
-                    <option value="Rec. Próprio">Rec. Próprio</option>
-                    <option value="Rec. da Secretaria">Rec. da Secretaria</option>
-                    <option value="Outros">Outros</option>
-                </select>
-            </div>
-
-            <button type="submit">Adicionar Lançamento</button>
-        </form>
-
-        <div id="relatorio-output" class="relatorio-container">
-            </div>
-
-        <div class="botoes-relatorio">
-            <button id="gerar-pdf">Gerar PDF</button>
-            <button id="gerar-imagem">Gerar Imagem</button>
         </div>
+    </nav>
+
+    <main id="page-cadastro" class="max-w-6xl mx-auto p-8 no-print">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <h2 id="formTitle" class="text-2xl font-bold text-slate-800 mb-8">Dados do Abastecimento</h2>
+                
+                <form id="fuelForm" class="space-y-5">
+                    <input type="hidden" id="editIndex" value=""> <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Posto de Combustível *</label>
+                        <select id="posto" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl focus:ring-2 ring-blue-500 outline-none transition" required>
+                            <option value="AUTO POSTO AS">AUTO POSTO AS</option>
+                            <option value="POSBRAL - POSTO BRANDÃO">POSBRAL - POSTO BRANDÃO</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Lotação (Secretaria) *</label>
+                        <select id="secretaria" onchange="toggleInput('secretaria', 'input_secretaria')" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl focus:ring-2 ring-blue-500 outline-none" required>
+                            <option value="ADMINISTRAÇÃO">ADMINISTRAÇÃO</option>
+                            <option value="AGRICULTURA">AGRICULTURA</option>
+                            <option value="ASSISTÊNCIA SOCIAL">ASSISTÊNCIA SOCIAL</option>
+                            <option value="ASSISTÊNCIA SOCIAL - CONSELHO TUTELAR">ASSISTÊNCIA SOCIAL - CONSELHO TUTELAR</option>
+                            <option value="CULTURA">CULTURA</option>
+                            <option value="EDUCAÇÃO">EDUCAÇÃO</option>
+                            <option value="ESPORTE">ESPORTE</option>
+                            <option value="FUNSERP">FUNSERP</option>
+                            <option value="GABINETE">GABINETE</option>
+                            <option value="INFRAESTRUTURA">INFRAESTRUTURA</option>
+                            <option value="SAÚDE">SAÚDE</option>
+                            <option value="OUTRA">OUTRA (DIGITAR)</option>
+                        </select>
+                        <input type="text" id="input_secretaria" placeholder="Nome da secretaria" class="hidden mt-2 w-full bg-blue-50 border border-blue-200 p-3 rounded-xl outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Combustível *</label>
+                            <select id="tipo" onchange="toggleInput('tipo', 'input_tipo')" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl focus:ring-2 ring-blue-500 outline-none" required>
+                                <option value="GASOLINA COMUM">GASOLINA COMUM</option>
+                                <option value="DIESEL S10">DIESEL S10</option>
+                                <option value="ETANOL">ETANOL</option>
+                                <option value="MESCLADO">MESCLADO (DIGITAR)</option>
+                            </select>
+                            <input type="text" id="input_tipo" placeholder="Tipo" class="hidden mt-2 w-full bg-blue-50 border border-blue-200 p-3 rounded-xl outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Recursos *</label>
+                            <select id="recurso" onchange="toggleInput('recurso', 'input_recurso')" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl focus:ring-2 ring-blue-500 outline-none" required>
+                                <option value="REC. PRÓPRIO">REC. PRÓPRIO</option>
+                                <option value="REC. DA SECRETARIA">REC. DA SECRETARIA</option>
+                                <option value="OUTROS">OUTROS (DIGITAR)</option>
+                            </select>
+                            <input type="text" id="input_recurso" placeholder="Qual?" class="hidden mt-2 w-full bg-blue-50 border border-blue-200 p-3 rounded-xl outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Valor R$ *</label>
+                            <input type="number" step="0.01" id="valor" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl" placeholder="0,00" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Litros</label>
+                            <input type="number" step="0.001" id="litros" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl" placeholder="0.000">
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="button" id="btnSalvarItem" onclick="adicionarItemALista()" class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl hover:bg-slate-700 shadow-lg transition-all uppercase tracking-widest text-sm">Adicionar à Lista</button>
+                        <button type="button" id="btnCancelarEdicao" onclick="limparCampos()" class="hidden bg-slate-200 text-slate-600 font-bold px-4 rounded-xl">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Itens Adicionados</h2>
+                    <span id="contadorItens" class="bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-xs font-black uppercase">0 Entradas</span>
+                </div>
+
+                <div class="overflow-hidden min-h-[300px]">
+                    <table class="modern-table w-full">
+                        <thead>
+                            <tr>
+                                <th>Secretaria</th>
+                                <th class="text-right">Valor</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaTemporariaBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="mt-8 border-t pt-6 flex flex-col md:flex-row justify-between items-center">
+                    <div class="text-3xl font-black text-slate-900">Total: <span id="tempTotal" class="text-blue-600">R$ 0,00</span></div>
+                    <button onclick="finalizarRelatorio()" class="bg-blue-600 text-white px-10 py-4 rounded-xl font-black hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all uppercase tracking-widest">Finalizar Relatório</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main id="page-historico" class="max-w-6xl mx-auto p-8 hidden-page no-print">
+        <div class="flex justify-between items-end mb-8">
+            <h2 class="text-3xl font-extrabold text-slate-800">Relatórios Salvos</h2>
+            <div class="flex gap-3">
+                <button onclick="exportarBackup()" class="bg-white border p-2 px-4 rounded-lg text-xs font-bold">💾 Backup</button>
+                <button onclick="document.getElementById('fileIn').click()" class="bg-white border p-2 px-4 rounded-lg text-xs font-bold">📂 Carregar</button>
+                <input type="file" id="fileIn" class="hidden" onchange="importarBackup(this)">
+            </div>
+        </div>
+        <div id="historicoCards" class="grid grid-cols-1 gap-4"></div>
+    </main>
+
+    <div id="printArea" class="hidden print-only bg-white p-12">
+        <div id="conteudoRelatorio" class="max-w-4xl mx-auto"></div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="script.js"></script>
+    <script>
+        let itensTemp = [];
+        let historico = JSON.parse(localStorage.getItem('cha_preta_final_v3')) || [];
+
+        function toggleInput(selectId, inputId) {
+            const select = document.getElementById(selectId);
+            const input = document.getElementById(inputId);
+            input.classList.toggle('hidden', !['OUTRA', 'MESCLADO', 'OUTROS'].includes(select.value));
+        }
+
+        function showPage(page) {
+            document.getElementById('page-cadastro').classList.toggle('hidden-page', page !== 'cadastro');
+            document.getElementById('page-historico').classList.toggle('hidden-page', page !== 'historico');
+            if(page === 'historico') renderHistorico();
+        }
+
+        function adicionarItemALista() {
+            const idx = document.getElementById('editIndex').value;
+            const getVal = (selId, inpId, def) => {
+                const s = document.getElementById(selId);
+                const i = document.getElementById(inpId);
+                return !i.classList.contains('hidden') ? (i.value || def).toUpperCase() : s.value;
+            };
+
+            const item = {
+                posto: document.getElementById('posto').value,
+                secretaria: getVal('secretaria', 'input_secretaria', 'OUTROS'),
+                tipo: getVal('tipo', 'input_tipo', 'MESCLADO'),
+                recurso: getVal('recurso', 'input_recurso', 'OUTROS'),
+                valor: parseFloat(document.getElementById('valor').value) || 0,
+                litros: parseFloat(document.getElementById('litros').value) || 0
+            };
+
+            if(idx === "") {
+                itensTemp.push(item);
+            } else {
+                itensTemp[parseInt(idx)] = item;
+            }
+
+            limparCampos();
+            renderListaTemporaria();
+        }
+
+        function editarItemTemp(index) {
+            const it = itensTemp[index];
+            document.getElementById('editIndex').value = index;
+            document.getElementById('posto').value = it.posto;
+            document.getElementById('valor').value = it.valor;
+            document.getElementById('litros').value = it.litros;
+            
+            const setField = (selId, inpId, val, trigger) => {
+                const sel = document.getElementById(selId);
+                const inp = document.getElementById(inpId);
+                const options = Array.from(sel.options).map(o => o.value);
+                if(options.includes(val)) {
+                    sel.value = val;
+                    inp.classList.add('hidden');
+                } else {
+                    sel.value = trigger;
+                    inp.classList.remove('hidden');
+                    inp.value = val;
+                }
+            };
+
+            setField('secretaria', 'input_secretaria', it.secretaria, 'OUTRA');
+            setField('tipo', 'input_tipo', it.tipo, 'MESCLADO');
+            setField('recurso', 'input_recurso', it.recurso, 'OUTROS');
+
+            document.getElementById('btnSalvarItem').innerText = "Atualizar Item";
+            document.getElementById('btnCancelarEdicao').classList.remove('hidden');
+            document.getElementById('formTitle').innerText = "Editando Item";
+        }
+
+        function limparCampos() {
+            document.getElementById('fuelForm').reset();
+            document.getElementById('editIndex').value = "";
+            document.getElementById('btnSalvarItem').innerText = "Adicionar à Lista";
+            document.getElementById('btnCancelarEdicao').classList.add('hidden');
+            document.getElementById('formTitle').innerText = "Dados do Abastecimento";
+            ['input_secretaria', 'input_tipo', 'input_recurso'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        }
+
+        function renderListaTemporaria() {
+            const body = document.getElementById('listaTemporariaBody');
+            let total = 0;
+            body.innerHTML = itensTemp.map((it, idx) => {
+                total += it.valor;
+                return `<tr>
+                    <td class="p-4 font-bold text-slate-700 uppercase">${it.secretaria}</td>
+                    <td class="p-4 text-right font-black">R$ ${it.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="editarItemTemp(${idx})" class="text-blue-500 font-bold mr-3 hover:underline">✎ Editar</button>
+                        <button onclick="itensTemp.splice(${idx},1);renderListaTemporaria();" class="text-red-400 font-bold hover:underline">✕ Remover</button>
+                    </td>
+                </tr>`;
+            }).join('');
+            document.getElementById('tempTotal').innerText = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+            document.getElementById('contadorItens').innerText = `${itensTemp.length} Entradas`;
+        }
+
+        function finalizarRelatorio() {
+            if(itensTemp.length === 0) return alert("Adicione itens primeiro.");
+            const rel = {
+                id: Date.now(),
+                numero: `REL-${new Date().getFullYear()}${Math.floor(Math.random()*9999)}`,
+                data: new Date().toLocaleDateString('pt-BR'),
+                posto: itensTemp[0].posto,
+                itens: [...itensTemp],
+                total: itensTemp.reduce((a,b) => a + b.valor, 0),
+                litros: itensTemp.reduce((a,b) => a + b.litros, 0)
+            };
+            historico.unshift(rel);
+            localStorage.setItem('cha_preta_final_v3', JSON.stringify(historico));
+            itensTemp = [];
+            renderListaTemporaria();
+            showPage('historico');
+        }
+
+        function renderHistorico() {
+            const container = document.getElementById('historicoCards');
+            container.innerHTML = historico.map(rel => `
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 flex justify-between items-center shadow-sm">
+                    <div>
+                        <div class="text-blue-600 font-black text-lg">${rel.numero}</div>
+                        <div class="text-slate-400 text-[10px] font-bold uppercase">${rel.data} - ${rel.posto}</div>
+                        <div class="text-slate-900 font-bold mt-1">Total: R$ ${rel.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="visualizar(${rel.id}, 'pdf')" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase">PDF</button>
+                        <button onclick="visualizar(${rel.id}, 'img')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase">Img</button>
+                        <button onclick="excluir(${rel.id})" class="text-red-400 font-bold text-xs ml-3">Excluir</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function visualizar(id, modo) {
+            const rel = historico.find(r => r.id === id);
+            
+            // Agrupamento Detalhado por Secretaria e Combustível
+            const agrupadoSecretaria = {}; 
+            const totaisRecurso = {};
+            const totaisTipoGeral = {};
+
+            rel.itens.forEach(i => {
+                if (!agrupadoSecretaria[i.secretaria]) {
+                    agrupadoSecretaria[i.secretaria] = { combustiveis: {}, total: 0 };
+                }
+                agrupadoSecretaria[i.secretaria].combustiveis[i.tipo] = (agrupadoSecretaria[i.secretaria].combustiveis[i.tipo] || 0) + i.valor;
+                agrupadoSecretaria[i.secretaria].total += i.valor;
+
+                totaisRecurso[i.recurso] = (totaisRecurso[i.recurso] || 0) + i.valor;
+                totaisTipoGeral[i.tipo] = (totaisTipoGeral[i.tipo] || 0) + i.valor;
+            });
+
+            const area = document.getElementById('conteudoRelatorio');
+            area.innerHTML = `
+                <div class="report-text-padrão border-b-2 border-slate-900 pb-4 mb-6">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h1 class="text-sm font-black text-slate-900 uppercase">Prefeitura Municipal de Chã Preta/AL</h1>
+                            <h2 class="text-xs font-bold text-slate-500 uppercase">Secretaria Municipal de Finanças</h2>
+                            <p class="font-bold text-slate-400 uppercase">POSTO: ${rel.posto}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-black text-blue-600">${rel.numero}</p>
+                            <p class="font-bold text-slate-400 uppercase">EMITIDO: ${rel.data}</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-100 p-2 rounded text-center">
+                        <h3 class="font-black text-slate-700 uppercase tracking-widest">Relatório de Pagamento de Combustível</h3>
+                    </div>
+                </div>
+                
+                <table class="w-full mb-6 report-text-padrão">
+                    <thead>
+                        <tr class="bg-slate-900 text-white uppercase">
+                            <th class="p-2 text-left">Lotação / Secretaria</th>
+                            <th class="p-2 text-left">Combustível / Recurso</th>
+                            <th class="p-2 text-right">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        ${rel.itens.map(i => `
+                            <tr>
+                                <td class="py-2 font-bold uppercase">${i.secretaria}</td>
+                                <td class="py-2 text-slate-600 uppercase">
+                                    ${i.tipo} | <span class="text-[8px] text-slate-400 italic">${i.recurso}</span>
+                                </td>
+                                <td class="py-2 text-right font-black">R$ ${i.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <div class="grid grid-cols-2 gap-4 mb-6 report-text-padrão">
+                    <div class="bg-slate-50 p-3 rounded border border-slate-200">
+                        <h4 class="font-black text-slate-900 uppercase border-b border-slate-300 mb-2">Totalização por Lotação</h4>
+                        ${Object.entries(agrupadoSecretaria).map(([sec, dados]) => `
+                            <div class="mb-3 last:mb-0">
+                                <div class="font-bold text-blue-700 uppercase mb-0.5">${sec}</div>
+                                ${Object.entries(dados.combustiveis).map(([comb, v]) => `
+                                    <div class="flex justify-between pl-2 border-l border-slate-300 mb-0.5 text-[9px]">
+                                        <span class="text-slate-500 uppercase">${comb}</span>
+                                        <span>R$ ${v.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                                    </div>
+                                `).join('')}
+                                <div class="flex justify-between font-black bg-slate-200/50 px-1 rounded">
+                                    <span>TOTAL</span>
+                                    <span>R$ ${dados.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="bg-white p-3 rounded border border-slate-200">
+                            <h4 class="font-black text-slate-900 uppercase border-b border-slate-300 mb-2">Resumo por Recurso</h4>
+                            ${Object.entries(totaisRecurso).map(([rec, val]) => `
+                                <div class="flex justify-between mb-0.5 uppercase">
+                                    <span class="text-slate-600">${rec}</span>
+                                    <span class="font-bold">R$ ${val.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="bg-white p-3 rounded border border-slate-200">
+                            <h4 class="font-black text-slate-900 uppercase border-b border-slate-300 mb-2">Resumo por Combustível</h4>
+                            ${Object.entries(totaisTipoGeral).map(([tipo, val]) => `
+                                <div class="flex justify-between mb-0.5 uppercase">
+                                    <span class="text-slate-600">${tipo}</span>
+                                    <span class="font-bold">R$ ${val.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mt-8 border-t pt-4 report-text-padrão">
+                    <div><p class="text-[8px] text-slate-400 uppercase font-bold italic">Documento de controle interno.</p></div>
+                    <div class="bg-slate-900 text-white p-4 rounded shadow-lg">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] uppercase text-slate-400">Volume (L)</span>
+                            <span class="font-bold">${rel.litros.toFixed(3)} L</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[9px] uppercase text-slate-400">Total Geral</span>
+                            <span class="text-lg font-black text-blue-400">R$ ${rel.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const pa = document.getElementById('printArea');
+            pa.classList.remove('hidden');
+            if(modo === 'pdf') { window.print(); pa.classList.add('hidden'); }
+            else { 
+                html2canvas(area, {scale:2}).then(c => {
+                    const l = document.createElement('a'); l.download = `${rel.numero}.png`;
+                    l.href = c.toDataURL(); l.click(); pa.classList.add('hidden');
+                });
+            }
+        }
+
+        function excluir(id) { if(confirm("Excluir relatório?")) { historico = historico.filter(r => r.id !== id); localStorage.setItem('cha_preta_final_v3', JSON.stringify(historico)); renderHistorico(); } }
+        function exportarBackup() { const ds = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(historico)); const a = document.createElement('a'); a.href = ds; a.download = `backup_financas.json`; a.click(); }
+        function importarBackup(i) { const r = new FileReader(); r.onload = e => { historico = JSON.parse(e.target.result); localStorage.setItem('cha_preta_final_v3', JSON.stringify(historico)); renderHistorico(); }; r.readAsText(i.files[0]); }
+
+        renderListaTemporaria();
+    </script>
 </body>
 </html>
