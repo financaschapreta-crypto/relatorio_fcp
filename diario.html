@@ -156,6 +156,7 @@
                                     <option value="Sec. de Agricultura">Sec. de Agricultura</option>
                                     <option value="Sec. de Assistência Social">Sec. de Assistência Social</option>
                                     <option value="Sec. de Cultura">Sec. de Cultura</option>
+                                    <option value="Sec. de Educação">Sec. de Educação</option>
                                     <option value="Sec. de Esporte">Sec. de Esporte</option>
                                     <option value="Sec. de Finanças">Sec. de Finanças</option>
                                     <option value="Sec. de Governo">Sec. de Governo</option>
@@ -251,6 +252,7 @@
                                         <option value="Sec. de Agricultura">Sec. de Agricultura</option>
                                         <option value="Sec. de Assistência Social">Sec. de Assistência Social</option>
                                         <option value="Sec. de Cultura">Sec. de Cultura</option>
+                                        <option value="Sec. de Educação">Sec. de Educação</option>
                                         <option value="Sec. de Esporte">Sec. de Esporte</option>
                                         <option value="Sec. de Finanças">Sec. de Finanças</option>
                                         <option value="Sec. de Governo">Sec. de Governo</option>
@@ -275,7 +277,7 @@
                                     </button>
                                     <button class="btn btn-sm btn-danger" onclick="exportPDF()">
                                         <i class="fa-solid fa-file-pdf me-1"></i>Gerar PDF
-                                        </button>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -410,20 +412,28 @@
             return parseFloat(stringMoeda.replace(/\./g, '').replace(',', '.'));
         }
 
+        // Lógica Avançada Estabilizada para Máscara CPF/CNPJ
         inputDoc.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '');
-            if(value.length > 14) value = value.slice(0, 14);
-
-            if (value.length <= 11) {
-                value = value.replace(/(\d{3})(\d)/, '$1.$2');
-                value = value.replace(/(\d{3})(\d)/, '$1.$2');
-                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-            } else {
-                value = value.replace(/^(\d{2})(\d)/, '$1.$2');
-                value = value.replace(/^(\d{3})(\d)/, '$1.$2');
-                value = value.replace(/(\d{3})(\d)/, '$1/$2');
-                value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+            let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não for dígito
+            
+            if (value.length > 14) {
+                value = value.slice(0, 14);
             }
+
+            // Aplica a máscara correspondente com base no tamanho numérico puro
+            if (value.length <= 11) {
+                // Máscara CPF: 000.000.000-00
+                value = value.replace(/^(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+                value = value.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+            } else {
+                // Máscara CNPJ: 00.000.000/0000-00
+                value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+                value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                value = value.replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4');
+                value = value.replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5');
+            }
+            
             e.target.value = value;
         });
 
@@ -433,6 +443,12 @@
 
             if(!inputData.value || !inputCredor.value.trim() || !inputDoc.value || !inputLotacao.value || !inputValor.value) {
                 exibirToast("Por favor, preencha todos os campos obrigatórios (*).", "bg-danger");
+                return;
+            }
+
+            const docLimpo = inputDoc.value.replace(/\D/g, '');
+            if(docLimpo.length !== 11 && docLimpo.length !== 14) {
+                exibirToast("Documento incompleto ou inválido. Digite um CPF ou CNPJ completo.", "bg-danger");
                 return;
             }
 
@@ -584,7 +600,7 @@
                         <td class="text-truncate" style="max-width: 180px;" title="${p.credor}">${p.credor}</td>
                         <td class="small text-muted">${p.documento}</td>
                         <td><span class="badge bg-secondary">${p.lotacao}</span></td>
-                        <td class="text-end fw-bold">R$ ${formatarMoedaOriginal(p.valor)}</td>
+                        <td class="text-end fw-bold text-dark">R$ ${formatarMoedaOriginal(p.valor)}</td>
                         <td class="text-center">
                             <div class="btn-group btn-group-sm">
                                 <button class="btn btn-outline-primary" onclick="iniciarEdicao('${p.id}')"><i class="fa-solid fa-pen"></i></button>
@@ -632,7 +648,7 @@
         function renderizarDashboard() {
             const hojeStr = new Date().toISOString().split('T')[0];
             
-            const total = processos.length;
+            const total = procesos.length;
             const totalHoje = processos.filter(p => p.data === hojeStr).length;
             const somaValores = processos.reduce((acc, p) => acc + p.valor, 0);
 
