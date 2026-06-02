@@ -644,11 +644,11 @@
             renderizarTabela();
         }
 
-        // RENDER DO DASHBOARD DINÂMICO
+        // RENDER DO DASHBOARD DINÂMICO (CORRIGIDO: "procesos" -> "processos")
         function renderizarDashboard() {
             const hojeStr = new Date().toISOString().split('T')[0];
             
-            const total = procesos.length;
+            const total = processos.length;
             const totalHoje = processos.filter(p => p.data === hojeStr).length;
             const somaValores = processos.reduce((acc, p) => acc + p.valor, 0);
 
