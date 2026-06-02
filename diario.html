@@ -498,6 +498,10 @@
             }
 
             localStorage.setItem('diario_processos', JSON.stringify(processos));
+            
+            // Força desligar qualquer trava de pré-visualização para exibir o novo item imediatamente
+            filtroAtivoAtivado = false; 
+            
             resetForm();
             renderizarDashboard();
             renderizarTabela();
@@ -533,6 +537,7 @@
         }
 
         function obterDadosTratados() {
+            // Puxa sempre o dado mais fresco e atual do LocalStorage
             let resultado = [...processos];
 
             // 1. Filtro da Barra de Busca Rápida (só roda se o filtro estruturado não for o foco atual)
@@ -644,7 +649,7 @@
             renderizarTabela();
         }
 
-        // RENDER DO DASHBOARD DINÂMICO (CORRIGIDO: "procesos" -> "processos")
+        // RENDER DO DASHBOARD DINÂMICO
         function renderizarDashboard() {
             const hojeStr = new Date().toISOString().split('T')[0];
             
@@ -751,6 +756,7 @@
                                 }
                             });
                             localStorage.setItem('diario_processos', JSON.stringify(processos));
+                            filtroAtivoAtivado = false;
                             renderizarDashboard();
                             renderizarTabela();
                             exibirToast("Backup restaurado e mesclado com sucesso!", "bg-success");
