@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diário de Processos Produzidos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0f4c81;
+            --secondary-color: #1b7ced;
+        }
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .bg-municipal {
+            background-color: var(--primary-color) !important;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 2px solid #f4f6f9;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        .dashboard-stat {
+            transition: transform 0.2s;
+        }
+        .dashboard-stat:hover {
+            transform: translateY(-5px);
+        }
+        .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-municipal sticky-top">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fa-solid fa-book-bookmark me-2"></i>PREFEITURA MUNICIPAL DE CHÃ PRETA/AL - Diário de Processos
+            </span>
+            <span class="text-white row-cols-sm-auto small" id="current-time-display"></span>
+        </div>
+    </nav>
+
+    <div class="container-fluid my-4">
+        
+        <div class="row text-white mb-2">
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card bg-primary dashboard-stat h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1">Total de Processos</h6>
+                            <h2 class="mb-0" id="dash-total-proc">0</h2>
+                        </div>
+                        <i class="fa-solid fa-folder-open fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card bg-success dashboard-stat h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1">Produzidos Hoje</h6>
+                            <h2 class="mb-0" id="dash-hoje-proc">0</h2>
+                        </div>
+                        <i class="fa-solid fa-calendar-day fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card bg-warning text-dark dashboard-stat h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1">Valor Total Acumulado</h6>
+                            <h2 class="mb-0 fs-3" id="dash-valor-total">R$ 0,00</h2>
+                        </div>
+                        <i class="fa-solid fa-money-bill-wave fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6 mb-3">
+                <div class="card bg-info text-white dashboard-stat h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1">Lotação Mais Ativa</h6>
+                            <h2 class="mb-0 fs-5" id="dash-lotacao-ativa">-</h2>
+                        </div>
+                        <i class="fa-solid fa-building-flag fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center" id="form-title-container">
+                        <span><i class="fa-solid fa-plus-circle me-2"></i>Novo Cadastro</span>
+                        <button class="btn btn-sm btn-outline-secondary d-none" id="btn-cancel-edit" onclick="resetForm()">Cancelar</button>
+                    </div>
+                    <div class="card-body">
+                        <form id="proc-form" novalidate>
+                            <input type="hidden" id="edit-id">
+                            
+                            <div class="mb-3">
+                                <label for="proc-data" class="form-label font-weight-bold">Data *</label>
+                                <input type="date" class="form-gradient form-control" id="proc-data" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="proc-protocolo" class="form-label">Número de Protocolo</label>
+                                <input type="text" class="form-control bg-light" id="proc-protocolo" readonly placeholder="Gerado automaticamente">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="proc-credor" class="form-label">Credor *</label>
+                                <input type="text" class="form-control" id="proc-credor" required placeholder="Nome do Credor">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="proc-doc" class="form-label">CPF / CNPJ *</label>
+                                <input type="text" class="form-control" id="proc-doc" required placeholder="000.000.000-00 ou 00.000.000/0000-00">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="proc-lotacao" class="form-label">Lotação *</label>
+                                <select class="form-select" id="proc-lotacao" required>
+                                    <option value="" selected disabled>Selecione a Lotação...</option>
+                                    <option value="FUNSERP">FUNSERP</option>
+                                    <option value="Gabinete">Gabinete</option>
+                                    <option value="Outros">Outros</option>
+                                    <option value="Sec. de Administração">Sec. de Administração</option>
+                                    <option value="Sec. de Agricultura">Sec. de Agricultura</option>
+                                    <option value="Sec. de Assistência Social">Sec. de Assistência Social</option>
+                                    <option value="Sec. de Cultura">Sec. de Cultura</option>
+                                    <option value="Sec. de Esporte">Sec. de Esporte</option>
+                                    <option value="Sec. de Finanças">Sec. de Finanças</option>
+                                    <option value="Sec. de Governo">Sec. de Governo</option>
+                                    <option value="Sec. de Infraestrutura">Sec. de Infraestrutura</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="proc-valor" class="form-label">Valor (R$) *</label>
+                                <input type="text" class="form-control" id="proc-valor" required placeholder="0,00">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="proc-obs" class="form-label">Observações</label>
+                                <textarea class="form-control" id="proc-obs" rows="3" placeholder="Detalhes adicionais do processo..."></textarea>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary" id="btn-salvar">
+                                    <i class="fa-solid fa-floppy-disk me-2"></i>Salvar Registro
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fa-solid fa-database me-2"></i>Segurança e Cópia (Backup)
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button class="btn btn-outline-success w-100" onclick="exportBackup()">
+                                    <i class="fa-solid fa-download me-2"></i>Fazer Backup
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-outline-warning text-dark w-100" onclick="triggerImport()">
+                                    <i class="fa-solid fa-upload me-2"></i>Restaurar
+                                </button>
+                                <input type="file" id="import-file" class="d-none" accept=".json" onchange="importBackup(event)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                                    <input type="text" id="search-instant" class="form-control" placeholder="Pesquisa instantânea (Prot, Credor, CPF/CNPJ...)">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white"><i class="fa-solid fa-sort text-muted"></i></span>
+                                    <select class="form-select" id="sort-select">
+                                        <option value="data-desc">Data (Mais Novo)</option>
+                                        <option value="data-asc">Data (Mais Antigo)</option>
+                                        <option value="credor-asc">Credor (A-Z)</option>
+                                        <option value="lotacao-asc">Lotação (A-Z)</option>
+                                        <option value="valor-desc">Valor (Maior)</option>
+                                        <option value="valor-asc">Valor (Menor)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3 d-grid">
+                                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFiltros">
+                                    <i class="fa-solid fa-sliders me-2"></i>Filtros de Relatório
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="collapse mt-3" id="collapseFiltros">
+                            <div class="p-3 border rounded bg-light">
+                                <h6 class="mb-3 text-primary"><i class="fa-solid fa-file-invoice me-2"></i>Gerar Relatório Filtrado</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Data Início</label>
+                                        <input type="date" id="filter-data-ini" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Data Fim</label>
+                                        <input type="date" id="filter-data-fim" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Lotação</label>
+                                        <select id="filter-lotacao" class="form-select form-select-sm">
+                                            <option value="">Todas</option>
+                                            <option value="FUNSERP">FUNSERP</option>
+                                            <option value="Gabinete">Gabinete</option>
+                                            <option value="Outros">Outros</option>
+                                            <option value="Sec. de Administração">Sec. de Administração</option>
+                                            <option value="Sec. de Agricultura">Sec. de Agricultura</option>
+                                            <option value="Sec. de Assistência Social">Sec. de Assistência Social</option>
+                                            <option value="Sec. de Cultura">Sec. de Cultura</option>
+                                            <option value="Sec. de Esporte">Sec. de Esporte</option>
+                                            <option value="Sec. de Finanças">Sec. de Finanças</option>
+                                            <option value="Sec. de Governo">Sec. de Governo</option>
+                                            <option value="Sec. de Infraestrutura">Sec. de Infraestrutura</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Credor</label>
+                                        <input type="text" id="filter-credor" class="form-control form-control-sm" placeholder="Nome do credor...">
+                                    </div>
+                                </div>
+                                <div class="mt-3 d-flex justify-content-end gap-2">
+                                    <button class="btn btn-sm btn-secondary" onclick="limparFiltrosRelatorio()">Limpar Filtros</button>
+                                    <button class="btn btn-sm btn-success" onclick="exportExcel()">
+                                        <i class="fa-solid fa-file-excel me-1"></i>Exportar XLSX
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="exportPDF()">
+                                        <i class="fa-solid fa-file-pdf me-1"></i>Gerar PDF
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="tabela-processos">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Protocolo</th>
+                                        <th>Data</th>
+                                        <th>Credor</th>
+                                        <th>CPF/CNPJ</th>
+                                        <th>Lotação</th>
+                                        <th class="text-end">Valor</th>
+                                        <th class="text-center" style="width: 120px;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lista-corpo-tabela">
+                                    </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                            <div class="small text-muted" id="table-info">
+                                Mostrando 0 de 0 registros
+                            </div>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0" id="table-pagination">
+                                    </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="liveToast" class="toast align-items-center text-white bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toast-message">
+                    Ação executada com sucesso.
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        // Memória da aplicação (Carregada do LocalStorage)
+        let processos = JSON.parse(localStorage.getItem('diario_processos')) || [];
+        let editandoId = null;
+
+        // Configuração de Paginação
+        let paginaAtual = 1;
+        const itensPorPagina = 7;
+
+        // Elementos DOM frequentemente usados
+        const form = document.getElementById('proc-form');
+        const inputData = document.getElementById('proc-data');
+        const inputProtocolo = document.getElementById('proc-protocolo');
+        const inputCredor = document.getElementById('proc-credor');
+        const inputDoc = document.getElementById('proc-doc');
+        const inputLotacao = document.getElementById('proc-lotacao');
+        const inputValor = document.getElementById('proc-valor');
+        const inputObs = document.getElementById('proc-obs');
+        const searchInput = document.getElementById('search-instant');
+        const sortSelect = document.getElementById('sort-select');
+
+        // Inicialização do Sistema ao carregar a página
+        window.addEventListener('DOMContentLoaded', () => {
+            definirDataAtual();
+            atualizarProtocoloAutomatico();
+            renderizarDashboard();
+            renderizarTabela();
+            
+            // Relógio no Topo
+            setInterval(() => {
+                const agora = new Date();
+                document.getElementById('current-time-display').innerText = agora.toLocaleString('pt-BR');
+            }, 1000);
+        });
+
+        // Altera data padrão para hoje
+        function definirDataAtual() {
+            const hoje = new Date().toISOString().split('T')[0];
+            inputData.value = hoje;
+        }
+
+        // Monitora alteração de data para reajustar o protocolo temporário sugerido
+        inputData.addEventListener('change', () => {
+            if(!editandoId) atualizarProtocoloAutomatico();
+        });
+
+        // Gera e exibe o próximo protocolo sequencial do dia
+        function atualizarProtocoloAutomatico() {
+            const dataSelecionada = inputData.value.replace(/-/g, '');
+            if(!dataSelecionada) return;
+
+            // Filtra os processos já existentes gerados com aquela mesma data base
+            const prefixo = `PROC-${dataSelecionada}-`;
+            const procDoDia = processos.filter(p => p.protocolo.startsWith(prefixo));
+            
+            let proximoSufixo = 1;
+            if(procDoDia.length > 0) {
+                // Descobre o maior sufixo numérico do dia
+                const sufixos = procDoDia.map(p => parseInt(p.protocolo.split('-')[2]));
+                proximoSufixo = Math.max(...sufixos) + 1;
+            }
+
+            const sufixoFormatado = String(proximoSufixo).padStart(8, '0');
+            inputProtocolo.value = `${prefixo}${sufixoFormatado}`;
+        }
+
+        // MÁSCARAS E VALIDAÇÕES AUTOMÁTICAS
+        // Formatação Monetária Dinâmica (enquanto digita)
+        inputValor.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if(value === '') { e.target.value = ''; return; }
+            value = (parseInt(value) / 100).toFixed(2);
+            e.target.value = formatarMoedaOriginal(value);
+        });
+
+        function formatarMoedaOriginal(valor) {
+            return parseFloat(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function converterValorParaFloat(stringMoeda) {
+            if(!stringMoeda) return 0;
+            return parseFloat(stringMoeda.replace(/\./g, '').replace(',', '.'));
+        }
+
+        // Máscara Dinâmica CPF / CNPJ
+        inputDoc.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            // Limita tamanho máximo de caracteres
+            if(value.length > 14) value = value.slice(0, 14);
+
+            if (value.length <= 11) {
+                // CPF
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            } else {
+                // CNPJ
+                value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+                value = value.replace(/^(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1/$2');
+                value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+            }
+            e.target.value = value;
+        });
+
+        // SALVAMENTO / SUBMIT DO FORMULÁRIO
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            // Validações Manuais
+            if(!inputData.value || !inputCredor.value.trim() || !inputDoc.value || !inputLotacao.value || !inputValor.value) {
+                exibirToast("Por favor, preencha todos os campos obrigatórios (*).", "bg-danger");
+                return;
+            }
+
+            const docLimpo = inputDoc.value.replace(/\D/g, '');
+            if(docLimpo.length !== 11 && docLimpo.length !== 14) {
+                exibirToast("Documento CPF (11 dígitos) ou CNPJ (14 dígitos) inválido.", "bg-danger");
+                return;
+            }
+
+            const valorNumerico = converterValorParaFloat(inputValor.value);
+            if(valorNumerico <= 0) {
+                exibirToast("O valor do processo deve ser maior que R$ 0,00.", "bg-danger");
+                return;
+            }
+
+            if(editandoId) {
+                // Ação de Edição
+                const index = processos.findIndex(p => p.id === editandoId);
+                if(index !== -1) {
+                    processos[index].data = inputData.value;
+                    processos[index].credor = inputCredor.value.trim();
+                    processos[index].documento = inputDoc.value;
+                    processos[index].lotacao = inputLotacao.value;
+                    processos[index].valor = valorNumerico;
+                    processos[index].observacoes = inputObs.value.trim();
+                    processos[index].ultimaAlteracao = new Date().toISOString();
+                    
+                    exibirToast("Processo atualizado com sucesso!");
+                }
+            } else {
+                // Ação de Novo Cadastro - Recalcula protocolo no instante do salvamento para blindar duplicidades simultâneas
+                atualizarProtocoloAutomatico();
+                const novoProtocolo = inputProtocolo.value;
+
+                // Teste de redundância contra duplicidade
+                if(processos.some(p => p.protocolo === novoProtocolo)) {
+                    exibirToast("Erro crítico: Tentativa de protocolo duplicado detectada. Tente salvar novamente.", "bg-danger");
+                    atualizarProtocoloAutomatico();
+                    return;
+                }
+
+                const novoProcesso = {
+                    id: 'ID-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                    protocolo: novoProtocolo,
+                    data: inputData.value,
+                    credor: inputCredor.value.trim(),
+                    documento: inputDoc.value,
+                    lotacao: inputLotacao.value,
+                    valor: valorNumerico,
+                    observacoes: inputObs.value.trim(),
+                    ultimaAlteracao: null
+                };
+
+                processos.push(novoProcesso);
+                exibirToast("Processo registrado com sucesso!", "bg-success");
+            }
+
+            salvarMemoria();
+            resetForm();
+            renderizarDashboard();
+            renderizarTabela();
+        });
+
+        // Grava no LocalStorage
+        function salvarMemoria() {
+            localStorage.setItem('diario_processos', JSON.stringify(processos));
+        }
+
+        // Reseta o estado do formulário para o modo Padrão (Inserção)
+        function resetForm() {
+            editandoId = null;
+            form.reset();
+            definirDataAtual();
+            atualizarProtocoloAutomatico();
+            
+            // UI rollback
+            document.getElementById('form-title-container').innerHTML = `<span><i class="fa-solid fa-plus-circle me-2"></i>Novo Cadastro</span>`;
+            document.getElementById('btn-cancel-edit').classList.add('d-none');
+            document.getElementById('btn-salvar').className = "btn btn-primary";
+            document.getElementById('btn-salvar').innerHTML = `<i class="fa-solid fa-floppy-disk me-2"></i>Salvar Registro`;
+        }
+
+        // GERENCIAMENTO DA INTERFACE, FILTROS E PAGINAÇÃO
+        searchInput.addEventListener('input', () => { paginaAtual = 1; renderizarTabela(); });
+        sortSelect.addEventListener('change', () => { renderizarTabela(); });
+
+        // Processa filtragem instantânea e ordenação do array principal
+        function obterDadosFiltradosETratados() {
+            let resultado = [...processos];
+
+            // 1. Filtro da Barra de Pesquisa Rápida (Protocolo, Credor, Documento)
+            const termoBusca = searchInput.value.toLowerCase().trim();
+            if(termoBusca) {
+                resultado = resultado.filter(p => 
+                    p.protocolo.toLowerCase().includes(termoBusca) ||
+                    p.credor.toLowerCase().includes(termoBusca) ||
+                    p.documento.includes(termoBusca) ||
+                    p.lotacao.toLowerCase().includes(termoBusca)
+                );
+            }
+
+            // 2. Filtros Avançados / Relatório (Se abertos e preenchidos)
+            const fIni = document.getElementById('filter-data-ini').value;
+            const fFim = document.getElementById('filter-data-fim').value;
+            const fLot = document.getElementById('filter-lotacao').value;
+            const fCred = document.getElementById('filter-credor').value.toLowerCase().trim();
+
+            if(fIni) resultado = resultado.filter(p => p.data >= fIni);
+            if(fFim) resultado = resultado.filter(p => p.data <= fFim);
+            if(fLot) resultado = resultado.filter(p => p.lotacao === fLot);
+            if(fCred) resultado = resultado.filter(p => p.credor.toLowerCase().includes(fCred));
+
+            // 3. Mecanismo de Ordenação
+            const criterio = sortSelect.value;
+            resultado.sort((a, b) => {
+                if(criterio === 'data-desc') return new Date(b.data) - new Date(a.data);
+                if(criterio === 'data-asc') return new Date(a.data) - new Date(b.data);
+                if(criterio === 'credor-asc') return a.credor.localeCompare(b.credor);
+                if(criterio === 'lotacao-asc') return a.lotacao.localeCompare(b.lotacao);
+                if(criterio === 'valor-desc') return b.valor - a.valor;
+                if(criterio === 'valor-asc') return a.valor - b.valor;
+                return 0;
+            });
+
+            return resultado;
+        }
+
+        // Renderização Dinâmica da Tabela Principal
+        function renderizarTabela() {
+            const dados = obterDadosFiltradosETratados();
+            const totalRegistros = dados.length;
+            const totalPaginas = Math.ceil(totalRegistros / itensPorPagina) || 1;
+
+            if(paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+
+            const inicio = (paginaAtual - 1) * itensPorPagina;
+            const fim = inicio + itensPorPagina;
+            const dadosPaginados = dados.slice(inicio, fim);
+
+            const corpoTabela = document.getElementById('lista-corpo-tabela');
+            corpoTabela.innerHTML = '';
+
+            if(dadosPaginados.length === 0) {
+                corpoTabela.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4">Nenhum processo localizado.</td></tr>`;
+            } else {
+                dadosPaginados.forEach(p => {
+                    // Formatação de data visual BR
+                    const dataBr = p.data.split('-').reverse().join('/');
+                    
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="ps-3 font-monospace fw-bold small">${p.protocolo}</td>
+                        <td>${dataBr}</td>
+                        <td class="text-truncate" style="max-width: 180px;" title="${p.credor}">${p.credor}</td>
+                        <td class="small text-muted">${p.documento}</td>
+                        <td><span class="badge bg-secondary">${p.lotacao}</span></td>
+                        <td class="text-end fw-bold text-dark">R$ ${formatarMoedaOriginal(p.valor)}</td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="iniciarEdicao('${p.id}')" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button class="btn btn-outline-danger" onclick="excluirProcesso('${p.id}')" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </td>
+                    `;
+                    corpoTabela.appendChild(tr);
+                });
+            }
+
+            // Atualiza rodapé de paginação
+            document.getElementById('table-info').innerText = `Mostrando de ${totalRegistros > 0 ? inicio + 1 : 0} até ${Math.min(fim, totalRegistros)} de ${totalRegistros} registros`;
+            
+            renderizarControlesPagina(totalPaginas);
+        }
+
+        function renderizarControlesPagina(totalPaginas) {
+            const pagContainer = document.getElementById('table-pagination');
+            pagContainer.innerHTML = '';
+
+            // Botão Voltar
+            const liPrev = document.createElement('li');
+            liPrev.className = `page-item ${paginaAtual === 1 ? 'disabled' : ''}`;
+            liPrev.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${paginaAtual - 1})"><i class="fa-solid fa-chevron-left"></i></a>`;
+            pagContainer.appendChild(liPrev);
+
+            // Números das páginas
+            for(let i = 1; i <= totalPaginas; i++) {
+                const liItem = document.createElement('li');
+                liItem.className = `page-item ${paginaAtual === i ? 'active' : ''}`;
+                liItem.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${i})">${i}</a>`;
+                pagContainer.appendChild(liItem);
+            }
+
+            // Botão Avançar
+            const liNext = document.createElement('li');
+            liNext.className = `page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}`;
+            liNext.innerHTML = `<a class="page-link" href="#" onclick="mudarPagina(${paginaAtual + 1})"><i class="fa-solid fa-chevron-right"></i></a>`;
+            pagContainer.appendChild(liNext);
+        }
+
+        function mudarPagina(numPagina) {
+            if(numPagina < 1) return;
+            paginaAtual = numPagina;
+            renderizarTabela();
+        }
+
+        // GESTÃO DO DASHBOARD CARD-ESTATÍSTICA
+        function renderizarDashboard() {
+            const hojeStr = new Date().toISOString().split('T')[0];
+            
+            const totalProc = processos.length;
+            const procHoje = processos.filter(p => p.data === hojeStr).length;
+            const valorTotal = processos.reduce((acc, p) => acc + p.valor, 0);
+
+            // Cálculo da lotação mais recorrente (Moda)
+            const lotacoesContagem = {};
+            let lotacaoMaisAtiva = "-";
+            let maxCount = 0;
+
+            processos.forEach(p => {
+                lotacoesContagem[p.lotacao] = (lotacoesContagem[p.lotacao] || 0) + 1;
+                if(lotacoesContagem[p.lotacao] > maxCount) {
+                    maxCount = lotacoesContagem[p.lotacao];
+                    lotacaoMaisAtiva = p.lotacao;
+                }
+            });
+
+            // Atualiza tela
+            document.getElementById('dash-total-proc').innerText = totalProc;
+            document.getElementById('dash-hoje-proc').innerText = procHoje;
+            document.getElementById('dash-valor-total').innerText = "R$ " + formatarMoedaOriginal(valorTotal);
+            document.getElementById('dash-lotacao-ativa').innerText = lotacaoMaisAtiva + (maxCount > 0 ? ` (${maxCount})` : '');
+        }
+
+        // REGRAS DE EDIÇÃO E EXCLUSÃO
+        function iniciarEdicao(id) {
+            const alvo = processos.find(p => p.id === id);
+            if(!alvo) return;
+
+            editandoId = id;
+
+            // Preenche os inputs com os dados vigentes
+            inputData.value = alvo.data;
+            inputProtocolo.value = alvo.protocolo;
+            inputCredor.value = alvo.credor;
+            inputDoc.value = alvo.documento;
+            inputLotacao.value = alvo.lotacao;
+            inputValor.value = formatarMoedaOriginal(alvo.valor);
+            inputObs.value = alvo.observacoes || '';
+
+            // Mutação da UI para modo "Edição de Registro"
+            document.getElementById('form-title-container').innerHTML = `<span><i class="fa-solid fa-edit me-2"></i>Editando Processo</span> <button class="btn btn-sm btn-outline-secondary" id="btn-cancel-edit" onclick="resetForm()">Cancelar</button>`;
+            document.getElementById('btn-salvar').className = "btn btn-warning text-dark";
+            document.getElementById('btn-salvar').innerHTML = `<i class="fa-solid fa-pencil-alt me-2"></i>Atualizar Alterações`;
+            
+            // Rola suavemente para o topo do formulário no celular
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function excluirProcesso(id) {
+            const alvo = processos.find(p => p.id === id);
+            if(!alvo) return;
+
+            if(confirm(`Tem certeza absoluta de que deseja excluir o processo protocolo: ${alvo.protocolo}?`)) {
+                processos = processos.filter(p => p.id !== id);
+                salvarMemoria();
+                
+                if(editandoId === id) resetForm();
+
+                exibirToast("Processo removido com sucesso.", "bg-danger");
+                renderizarDashboard();
+                renderizarTabela();
+            }
+        }
+
+        // LIMPAR FILTROS DE RELATÓRIO
+        function limparFiltrosRelatorio() {
+            document.getElementById('filter-data-ini').value = '';
+            document.getElementById('filter-data-fim').value = '';
+            document.getElementById('filter-lotacao').value = '';
+            document.getElementById('filter-credor').value = '';
+            renderizarTabela();
+        }
+
+        // Ações de gatilho para os inputs ocultos de importação
+        function triggerImport() {
+            document.getElementById('import-file').click();
+        }
+
+        // BACKUP INTEGRADO EM ARQUIVOS JSON
+        function exportBackup() {
+            if(processos.length === 0) {
+                exibirToast("Não existem dados para exportar.", "bg-warning text-dark");
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(processos, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            
+            const dataHoje = new Date().toISOString().split('T')[0];
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `backup-diario-processos-${dataHoje}.json`);
+            dlAnchorElem.click();
+            exibirToast("Backup gerado e baixado!", "bg-success");
+        }
+
+        function importBackup(event) {
+            const arquivo = event.target.files[0];
+            if (!arquivo) return;
+
+            const leitor = new FileReader();
+            leitor.onload = function(e) {
+                try {
+                    const dadosImportados = JSON.parse(e.target.result);
+                    
+                    // Validação estrutural de integridade simples
+                    if (Array.isArray(dadosImportados) && (dadosImportados.length === 0 || ('protocolo' in dadosImportados[0] && 'valor' in dadosImportados[0]))) {
+                        if(confirm(`Atenção: A restauração irá mesclar os registros importados (${dadosImportados.length}) aos seus dados atuais. Continuar?`)) {
+                            
+                            // Mescla evitando duplicidades absolutas por ID ou Protocolo idênticos
+                            dadosImportados.forEach(novoP => {
+                                if(!processos.some(velhoP => velhoP.protocolo === novoP.protocolo || velhoP.id === novoP.id)) {
+                                    processos.push(novoP);
+                                }
+                            });
+
+                            salvarMemoria();
+                            renderizarDashboard();
+                            renderizarTabela();
+                            exibirToast("Dados restaurados e integrados com sucesso!", "bg-success");
+                        }
+                    } else {
+                        exibirToast("Falha: O arquivo JSON não possui uma estrutura de dados de processos válida.", "bg-danger");
+                    }
+                } catch (err) {
+                    exibirToast("Erro crítico ao ler JSON. Arquivo corrompido.", "bg-danger");
+                }
+            };
+            leitor.readAsText(arquivo);
+            event.target.value = ''; // Limpa o input file
+        }
+
+        // GERADOR DE PLANILHAS EXCEL (XLSX - SHEETJS)
+        function exportExcel() {
+            const dadosAlvo = obterDadosFiltradosETratados();
+            if(dadosAlvo.length === 0) {
+                exibirToast("Nenhum registro encontrado para exportar o Excel.", "bg-warning text-dark");
+                return;
+            }
+
+            // Mapeamento e tradução para formato de colunas plano requisitado
+            const matrizDados = dadosAlvo.map(p => ({
+                "Protocolo": p.protocolo,
+                "Data": p.data.split('-').reverse().join('/'),
+                "Credor": p.credor,
+                "CPF/CNPJ": p.documento,
+                "Lotação": p.lotacao,
+                "Valor": p.valor,
+                "Observações": p.observacoes || ''
+            }));
+
+            const dataset = XLSX.utils.json_to_sheet(matrizDados);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, dataset, "Processos Produzidos");
+
+            // Baixa arquivo Excel
+            XLSX.writeFile(workbook, `Relatorio-Processos-${new Date().toISOString().split('T')[0]}.xlsx`);
+            exibirToast("Planilha XLSX gerada com sucesso!");
+        }
+
+        // GERADOR DE RELATÓRIO PDF PROFISSIONAL (jsPDF + AUTOTABLE)
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // Paisagem para melhor aproveitamento das colunas
+            
+            const dadosAlvo = obterDadosFiltradosETratados();
+            if(dadosAlvo.length === 0) {
+                exibirToast("Nenhum registro encontrado com os parâmetros atuais para PDF.", "bg-warning text-dark");
+                return;
+            }
+
+            // Metadados do Cabeçalho solicitados
+            const hoje = new Date();
+            const dataEmissao = hoje.toLocaleDateString('pt-BR');
+            const aleatorioQuatroDigitos = String(Math.floor(1000 + Math.random() * 9000));
+            const numRelatorio = hoje.toISOString().split('T')[0].replace(/-/g, '') + '-' + aleatorioQuatroDigitos;
+
+            // Título / Topo Visual do Governo Municipal
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.text("PREFEITURA MUNICIPAL DE CHÃ PRETA/AL", 14, 15);
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            doc.text("Secretaria Municipal de Finanças", 14, 21);
+            doc.text("DIÁRIO DE PROCESSOS PRODUZIDOS", 14, 26);
+
+            // Lado Direito do Cabeçalho
+            doc.setFontSize(10);
+            doc.text(`Data de emissão: ${dataEmissao}`, 230, 15);
+            doc.text(`Relatório nº: ${numRelatorio}`, 230, 21);
+            
+            // Linha divisória estética
+            doc.setLineWidth(0.5);
+            doc.setDrawColor(15, 76, 129);
+            doc.line(14, 30, 283, 30);
+
+            // Processamento da tabela
+            const colunas = ["Protocolo", "Data", "Credor", "CPF/CNPJ", "Lotação", "Valor", "Observações"];
+            const linhas = dadosAlvo.map(p => [
+                p.protocolo,
+                p.data.split('-').reverse().join('/'),
+                p.credor,
+                p.documento,
+                p.lotacao,
+                `R$ ${formatarMoedaOriginal(p.valor)}`,
+                p.observacoes || ''
+            ]);
+
+            // Totais para o fechamento
+            const somaTotalValores = dadosAlvo.reduce((acc, p) => acc + p.valor, 0);
+            const qtdTotalProcessos = dadosAlvo.length;
+
+            doc.autoTable({
+                head: [colunas],
+                body: lines = linhas,
+                startY: 35,
+                theme: 'striped',
+                headStyles: { fillColor: [15, 76, 129], fontStyle: 'bold' },
+                styles: { fontSize: 9, overflow: 'linebreak' },
+                columnStyles: {
+                    0: { cellWidth: 42, fontStyle: 'bold' }, // Protocolo
+                    1: { cellWidth: 22 }, // Data
+                    2: { cellWidth: 45 }, // Credor
+                    3: { cellWidth: 35 }, // CPF/CNPJ
+                    4: { cellWidth: 38 }, // Lotacao
+                    5: { cellWidth: 30, halign: 'right' }, // Valor
+                    6: { cellWidth: 'auto' } // Obs
+                },
+                didDrawPage: function(data) {
+                    // Rodapé de página automático em caso de múltiplas quebras
+                    doc.setFontSize(8);
+                    doc.text(`Página ${data.pageNumber}`, 14, doc.internal.pageSize.height - 10);
+                }
+            });
+
+            // Resumo do Fechamento de Relatório (Abaixo da Tabela)
+            const finalY = doc.lastAutoTable.finalY + 10;
+            
+            // Verifica se as considerações finais cabem na página atual, se não, adiciona página extra
+            if (finalY > doc.internal.pageSize.height - 30) {
+                doc.addPage();
+                var currentY = 20;
+            } else {
+                var currentY = finalY;
+            }
+
+            doc.setFillColor(240, 240, 240);
+            doc.rect(14, currentY, 269, 18, 'F');
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(14, currentY, 269, 18, 'S');
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(0,0,0);
+            doc.text("RESUMO DO FECHAMENTO DO RELATÓRIO", 18, currentY + 6);
+            
+            doc.setFont("helvetica", "normal");
+            doc.text(`Quantidade total de processos: ${qtdTotalProcessos}`, 18, currentY + 13);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Valor total acumulado dos processos: R$ ${formatarMoedaOriginal(somaTotalValores)}`, 140, currentY + 13);
+
+            // Nomeia e executa download do arquivo PDF criado
+            doc.save(`Relatorio-Processos-${numRelatorio}.pdf`);
+            exibirToast("Documento PDF gerado e baixado!", "bg-danger");
+        }
+
+        // SISTEMA INTERNO DE TOASTS/NOTIFICAÇÕES
+        function exibirToast(mensagem, classeBg = "bg-success") {
+            const toastEl = document.getElementById('liveToast');
+            const msgEl = document.getElementById('toast-message');
+            
+            toastEl.className = `toast align-items-center text-white border-0 ${classeBg}`;
+            msgEl.innerText = mensagem;
+            
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+    </script>
+</body>
+</html>
