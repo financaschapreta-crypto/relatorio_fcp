@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
@@ -17,43 +17,66 @@
         }
         .hidden-page { display: none; }
         .modern-table { width: 100%; border-collapse: collapse; }
-        .modern-table th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; padding: 12px; border-bottom: 2px solid #e2e8f0; }
-        .modern-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #1e293b; }
-        
-        /* Ajuste de Fonte Padrão 10 para o Relatório */
-        .report-text-padrão { font-size: 10px !important; }
+        .modern-table th { background: #f1f5f9; color: #475569; text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; padding: 14px; border-bottom: 2px solid #cbd5e1; }
+        .modern-table td { padding: 14px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #334155; }
+        .report-text-padrão { font-size: 11px !important; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-[#f8fafc] text-slate-800 min-h-screen antialiased">
 
-    <nav class="bg-slate-900 text-white p-4 no-print shadow-sm">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <span class="font-bold tracking-tight text-lg">CHÃ PRETA <span class="text-blue-400">FINANÇAS</span></span>
-            <div class="flex gap-6">
-                <button onclick="showPage('cadastro')" class="text-sm font-medium hover:text-blue-400 transition">Montar Relatório</button>
-                <button onclick="showPage('historico')" class="text-sm font-medium hover:text-blue-400 transition">Relatórios Salvos</button>
+    <nav class="bg-slate-950 text-white p-4 no-print shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-xl text-white font-black text-xs tracking-wider">CP</div>
+                <span class="font-extrabold tracking-tight text-base uppercase">Chã Preta <span class="text-blue-500 font-medium text-sm">Finanças</span></span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="showPage('cadastro')" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-slate-200 px-4 py-2.5 rounded-xl transition border border-slate-800">📊 Montar Relatório</button>
+                <button onclick="showPage('historico')" class="text-xs font-bold bg-slate-900 hover:bg-slate-800 text-slate-200 px-4 py-2.5 rounded-xl transition border border-slate-800">📂 Relatórios Salvos</button>
             </div>
         </div>
     </nav>
 
-    <main id="page-cadastro" class="max-w-6xl mx-auto p-8 no-print">
+    <main id="page-cadastro" class="max-w-7xl mx-auto p-4 md:p-8 no-print">
+        
+        <div id="statusLote" class="hidden mb-6 bg-slate-900 border border-slate-800 text-white p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-500 w-3 h-3 rounded-full animate-pulse"></div>
+                <div>
+                    <p class="text-sm font-bold">Configurações do Lote Atual</p>
+                    <p class="text-xs text-slate-400 font-medium">Os campos comuns foram memorizados para agilizar as inserções.</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-4 w-full sm:w-auto justify-end">
+                <label class="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700/80 transition px-4 py-2 rounded-xl cursor-pointer text-xs font-bold border border-slate-700">
+                    <input type="checkbox" id="chkFixarCampos" checked onchange="toggleBloqueioManual()" class="w-4 h-4 text-blue-600 bg-slate-900 border-slate-700 rounded focus:ring-blue-500 focus:ring-2">
+                    🔒 Fixar Posto, Combustível e Recurso
+                </label>
+                <button onclick="resetarLoteTotalmente()" class="bg-rose-600/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/20 transition text-xs font-bold px-4 py-2 rounded-xl">✨ Limpar Tudo</button>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                <h2 id="formTitle" class="text-2xl font-bold text-slate-800 mb-8">Dados do Abastecimento</h2>
+            <div class="lg:col-span-5 bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="formTitle" class="text-xl font-extrabold text-slate-900 tracking-tight">Dados do Abastecimento</h2>
+                </div>
                 
                 <form id="fuelForm" class="space-y-5">
-                    <input type="hidden" id="editIndex" value=""> <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Posto de Combustível *</label>
-                        <select id="posto" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl focus:ring-2 ring-blue-500 outline-none transition" required>
+                    <input type="hidden" id="editIndex" value=""> 
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Posto de Combustível *</label>
+                        <select id="posto" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl font-medium focus:ring-2 ring-blue-500/20 focus:border-blue-500 outline-none transition disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed" required>
                             <option value="AUTO POSTO AS">AUTO POSTO AS</option>
                             <option value="POSBRAL - POSTO BRANDÃO">POSBRAL - POSTO BRANDÃO</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Lotação (Secretaria) *</label>
-                        <select id="secretaria" onchange="toggleInput('secretaria', 'input_secretaria')" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl focus:ring-2 ring-blue-500 outline-none" required>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Lotação (Secretaria) *</label>
+                        <select id="secretaria" onchange="toggleInput('secretaria', 'input_secretaria')" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl font-medium focus:ring-2 ring-blue-500/20 focus:border-blue-500 outline-none transition" required>
                             <option value="ADMINISTRAÇÃO">ADMINISTRAÇÃO</option>
                             <option value="AGRICULTURA">AGRICULTURA</option>
                             <option value="ASSISTÊNCIA SOCIAL">ASSISTÊNCIA SOCIAL</option>
@@ -67,83 +90,116 @@
                             <option value="SAÚDE">SAÚDE</option>
                             <option value="OUTRA">OUTRA (DIGITAR)</option>
                         </select>
-                        <input type="text" id="input_secretaria" placeholder="Nome da secretaria" class="hidden mt-2 w-full bg-blue-50 border border-blue-200 p-3 rounded-xl outline-none">
+                        <input type="text" id="input_secretaria" placeholder="Digite o nome da secretaria..." class="hidden mt-2 w-full bg-blue-50/50 border border-blue-200 p-3.5 rounded-xl outline-none focus:ring-2 ring-blue-500 text-sm font-medium uppercase">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Combustível *</label>
-                            <select id="tipo" onchange="toggleInput('tipo', 'input_tipo')" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl focus:ring-2 ring-blue-500 outline-none" required>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Combustível *</label>
+                            <select id="tipo" onchange="toggleInput('tipo', 'input_tipo')" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl font-medium focus:ring-2 ring-blue-500/20 focus:border-blue-500 outline-none transition disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed" required>
                                 <option value="GASOLINA COMUM">GASOLINA COMUM</option>
                                 <option value="DIESEL S10">DIESEL S10</option>
                                 <option value="ETANOL">ETANOL</option>
                                 <option value="MESCLADO">MESCLADO (DIGITAR)</option>
                             </select>
-                            <input type="text" id="input_tipo" placeholder="Tipo" class="hidden mt-2 w-full bg-blue-50 border border-blue-200 p-3 rounded-xl outline-none">
+                            <input type="text" id="input_tipo" placeholder="Tipo..." class="hidden mt-2 w-full bg-blue-50/50 border border-blue-200 p-3.5 rounded-xl outline-none text-sm font-medium uppercase">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Recursos *</label>
-                            <select id="recurso" onchange="toggleInput('recurso', 'input_recurso')" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl focus:ring-2 ring-blue-500 outline-none" required>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Recursos *</label>
+                            <select id="recurso" onchange="toggleInput('recurso', 'input_recurso')" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl font-medium focus:ring-2 ring-blue-500/20 focus:border-blue-500 outline-none transition disabled:opacity-50 disabled:bg-slate-100 disabled:cursor-not-allowed" required>
                                 <option value="REC. PRÓPRIO">REC. PRÓPRIO</option>
                                 <option value="REC. DA SECRETARIA">REC. DA SECRETARIA</option>
                                 <option value="OUTROS">OUTROS (DIGITAR)</option>
                             </select>
-                            <input type="text" id="input_recurso" placeholder="Qual?" class="hidden mt-2 w-full bg-blue-50 border border-blue-200 p-3 rounded-xl outline-none">
+                            <input type="text" id="input_recurso" placeholder="Qual?" class="hidden mt-2 w-full bg-blue-50/50 border border-blue-200 p-3.5 rounded-xl outline-none text-sm font-medium uppercase">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Valor R$ *</label>
-                            <input type="number" step="0.01" id="valor" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl" placeholder="0,00" required>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Valor R$ *</label>
+                            <input type="number" step="0.01" id="valor" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl font-bold text-slate-900 focus:ring-2 ring-blue-500/20 focus:border-blue-500 outline-none transition" placeholder="0,00" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Litros</label>
-                            <input type="number" step="0.001" id="litros" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl" placeholder="0.000">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Litros</label>
+                            <input type="number" step="0.001" id="litros" class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl font-semibold text-slate-700 focus:ring-2 ring-blue-500/20 focus:border-blue-500 outline-none transition" placeholder="0.000">
                         </div>
                     </div>
 
-                    <div class="flex gap-2">
-                        <button type="button" id="btnSalvarItem" onclick="adicionarItemALista()" class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl hover:bg-slate-700 shadow-lg transition-all uppercase tracking-widest text-sm">Adicionar à Lista</button>
-                        <button type="button" id="btnCancelarEdicao" onclick="limparCampos()" class="hidden bg-slate-200 text-slate-600 font-bold px-4 rounded-xl">Cancelar</button>
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" id="btnSalvarItem" onclick="adicionarItemALista()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 transition-all uppercase tracking-wider text-xs">Adicionar à Lista</button>
+                        <button type="button" id="btnCancelarEdicao" onclick="limparCamposForm()" class="hidden bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-4 rounded-xl text-xs uppercase transition">Cancelar</button>
                     </div>
                 </form>
             </div>
 
-            <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-slate-800">Itens Adicionados</h2>
-                    <span id="contadorItens" class="bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-xs font-black uppercase">0 Entradas</span>
+            <div class="lg:col-span-7 space-y-6">
+                
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">Itens no Lote</h2>
+                            <p class="text-xs text-slate-400 font-medium mt-0.5">Listagem individual de lançamentos</p>
+                        </div>
+                        <span id="contadorItens" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold">0 Entradas</span>
+                    </div>
+
+                    <div class="overflow-x-auto min-h-[220px]">
+                        <table class="modern-table w-full">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">Lotação (Secretaria)</th>
+                                    <th class="text-left">Info Adicional</th>
+                                    <th class="text-right">Valor</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listaTemporariaBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-8 border-t border-slate-100 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Subtotal Acumulado</p>
+                            <div class="text-3xl font-black text-slate-900 tracking-tight" id="tempTotal">R$ 0,00</div>
+                        </div>
+                        <button onclick="finalizarRelatorio()" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-xl font-bold shadow-xl transition-all uppercase tracking-wider text-xs">Finalizar e Salvar Relatório</button>
+                    </div>
                 </div>
 
-                <div class="overflow-hidden min-h-[300px]">
-                    <table class="modern-table w-full">
-                        <thead>
-                            <tr>
-                                <th>Secretaria</th>
-                                <th class="text-right">Valor</th>
-                                <th class="text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="listaTemporariaBody"></tbody>
-                    </table>
+                <div id="painelTotalizacoesTemp" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 border-b pb-2">Totalizadores por Lotação</h3>
+                        <div id="totalizacaoLotacaoBody" class="space-y-2 max-h-[200px] overflow-y-auto pr-1"></div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b pb-2">Por Combustível</h3>
+                            <div id="totalizacaoTipoBody" class="space-y-1.5"></div>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b pb-2">Por Fonte de Recurso</h3>
+                            <div id="totalizacaoRecursoBody" class="space-y-1.5"></div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mt-8 border-t pt-6 flex flex-col md:flex-row justify-between items-center">
-                    <div class="text-3xl font-black text-slate-900">Total: <span id="tempTotal" class="text-blue-600">R$ 0,00</span></div>
-                    <button onclick="finalizarRelatorio()" class="bg-blue-600 text-white px-10 py-4 rounded-xl font-black hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all uppercase tracking-widest">Finalizar Relatório</button>
-                </div>
             </div>
         </div>
     </main>
 
-    <main id="page-historico" class="max-w-6xl mx-auto p-8 hidden-page no-print">
-        <div class="flex justify-between items-end mb-8">
-            <h2 class="text-3xl font-extrabold text-slate-800">Relatórios Salvos</h2>
-            <div class="flex gap-3">
-                <button onclick="exportarBackup()" class="bg-white border p-2 px-4 rounded-lg text-xs font-bold">💾 Backup</button>
-                <button onclick="document.getElementById('fileIn').click()" class="bg-white border p-2 px-4 rounded-lg text-xs font-bold">📂 Carregar</button>
-                <input type="file" id="fileIn" class="hidden" onchange="importarBackup(this)">
+    <main id="page-historico" class="max-w-4xl mx-auto p-4 md:p-8 hidden-page no-print">
+        <div class="bg-white rounded-3xl border border-slate-100 p-6 md:p-8 shadow-sm mb-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Relatórios Salvos</h2>
+                    <p class="text-sm text-slate-400 font-medium">Histórico de relatórios gerados localmente</p>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="exportarBackup()" class="flex-1 sm:flex-none bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 p-2.5 px-4 rounded-xl text-xs font-bold transition">💾 Backup Geral</button>
+                    <button onclick="document.getElementById('fileIn').click()" class="flex-1 sm:flex-none bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-100 p-2.5 px-4 rounded-xl text-xs font-bold transition">📂 Importar JSON</button>
+                    <input type="file" id="fileIn" class="hidden" onchange="importarBackup(this)">
+                </div>
             </div>
         </div>
         <div id="historicoCards" class="grid grid-cols-1 gap-4"></div>
@@ -156,17 +212,43 @@
     <script>
         let itensTemp = [];
         let historico = JSON.parse(localStorage.getItem('cha_preta_final_v3')) || [];
+        let loteIniciado = false;
 
         function toggleInput(selectId, inputId) {
             const select = document.getElementById(selectId);
             const input = document.getElementById(inputId);
             input.classList.toggle('hidden', !['OUTRA', 'MESCLADO', 'OUTROS'].includes(select.value));
+            if(!input.classList.contains('hidden')) input.focus();
         }
 
         function showPage(page) {
             document.getElementById('page-cadastro').classList.toggle('hidden-page', page !== 'cadastro');
             document.getElementById('page-historico').classList.toggle('hidden-page', page !== 'historico');
             if(page === 'historico') renderHistorico();
+        }
+
+        // Controla o estado de bloqueio baseado no lote e no checkbox
+        function aplicarEstadoCampos() {
+            const statusBox = document.getElementById('statusLote');
+            
+            if (itensTemp.length > 0) {
+                statusBox.classList.remove('hidden');
+                const deveFixar = document.getElementById('chkFixarCampos').checked;
+                
+                document.getElementById('posto').disabled = deveFixar;
+                document.getElementById('tipo').disabled = deveFixar;
+                document.getElementById('recurso').disabled = deveFixar;
+            } else {
+                statusBox.classList.add('hidden');
+                document.getElementById('posto').disabled = false;
+                document.getElementById('tipo').disabled = false;
+                document.getElementById('recurso').disabled = false;
+            }
+        }
+
+        // Ativada quando o usuário clica manualmente na caixinha de seleção
+        function toggleBloqueioManual() {
+            aplicarEstadoCampos();
         }
 
         function adicionarItemALista() {
@@ -186,19 +268,34 @@
                 litros: parseFloat(document.getElementById('litros').value) || 0
             };
 
+            if (item.valor <= 0) return alert("Por favor, informe um valor válido.");
+
             if(idx === "") {
                 itensTemp.push(item);
             } else {
                 itensTemp[parseInt(idx)] = item;
             }
 
-            limparCampos();
+            // Ativa nativamente o checkbox e aplica o bloqueio na primeira inserção
+            if (itensTemp.length === 1 && !loteIniciado) {
+                loteIniciado = true;
+                document.getElementById('chkFixarCampos').checked = true;
+            }
+
+            limparCamposForm();
             renderListaTemporaria();
+            aplicarEstadoCampos();
         }
 
         function editarItemTemp(index) {
             const it = itensTemp[index];
             document.getElementById('editIndex').value = index;
+            
+            // Permite carregar o valor para edição mesmo se estiver travado temporariamente
+            document.getElementById('posto').disabled = false;
+            document.getElementById('tipo').disabled = false;
+            document.getElementById('recurso').disabled = false;
+            
             document.getElementById('posto').value = it.posto;
             document.getElementById('valor').value = it.valor;
             document.getElementById('litros').value = it.litros;
@@ -221,69 +318,159 @@
             setField('tipo', 'input_tipo', it.tipo, 'MESCLADO');
             setField('recurso', 'input_recurso', it.recurso, 'OUTROS');
 
-            document.getElementById('btnSalvarItem').innerText = "Atualizar Item";
+            document.getElementById('btnSalvarItem').innerText = "Atualizar Lançamento";
             document.getElementById('btnCancelarEdicao').classList.remove('hidden');
             document.getElementById('formTitle').innerText = "Editando Item";
         }
 
-        function limparCampos() {
-            document.getElementById('fuelForm').reset();
+        function limparCamposForm() {
+            document.getElementById('valor').value = "";
+            document.getElementById('litros').value = "";
             document.getElementById('editIndex').value = "";
+            document.getElementById('secretaria').value = "ADMINISTRAÇÃO";
+            
             document.getElementById('btnSalvarItem').innerText = "Adicionar à Lista";
             document.getElementById('btnCancelarEdicao').classList.add('hidden');
             document.getElementById('formTitle').innerText = "Dados do Abastecimento";
+            
             ['input_secretaria', 'input_tipo', 'input_recurso'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            aplicarEstadoCampos();
+        }
+
+        function removerItemLote(idx) {
+            itensTemp.splice(idx, 1);
+            if(itensTemp.length === 0) {
+                resetarLoteTotalmente();
+            } else {
+                renderListaTemporaria();
+                aplicarEstadoCampos();
+            }
+        }
+
+        function resetarLoteTotalmente() {
+            itensTemp = [];
+            loteIniciado = false;
+            document.getElementById('fuelForm').reset();
+            document.getElementById('chkFixarCampos').checked = true;
+            limparCamposForm();
+            renderListaTemporaria();
+            aplicarEstadoCampos();
+        }
+
+        function calcularTotalizacoesLote(itens) {
+            const lotacoes = {};
+            const combustiveis = {};
+            const recursos = {};
+
+            itens.forEach(i => {
+                lotacoes[i.secretaria] = (lotacoes[i.secretaria] || 0) + i.valor;
+                combustiveis[i.tipo] = (combustiveis[i.tipo] || 0) + i.valor;
+                recursos[i.recurso] = (recursos[i.recurso] || 0) + i.valor;
+            });
+
+            return { lotacoes, combustiveis, recursos };
         }
 
         function renderListaTemporaria() {
             const body = document.getElementById('listaTemporariaBody');
+            const painelTotais = document.getElementById('painelTotalizacoesTemp');
             let total = 0;
+
+            if (itensTemp.length === 0) {
+                body.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400 font-medium">Nenhum abastecimento inserido neste lote.</td></tr>`;
+                document.getElementById('tempTotal').innerText = `R$ 0,00`;
+                document.getElementById('contadorItens').innerText = `0 Entradas`;
+                painelTotais.classList.add('hidden');
+                return;
+            }
+
+            painelTotais.classList.remove('hidden');
+
             body.innerHTML = itensTemp.map((it, idx) => {
                 total += it.valor;
-                return `<tr>
-                    <td class="p-4 font-bold text-slate-700 uppercase">${it.secretaria}</td>
-                    <td class="p-4 text-right font-black">R$ ${it.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                return `<tr class="hover:bg-slate-50/80 transition">
+                    <td class="p-4 font-bold text-slate-800 uppercase text-xs">${it.secretaria}</td>
+                    <td class="p-4 text-slate-500 text-xs uppercase font-medium">
+                        <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold">${it.tipo}</span>
+                        <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-semibold ml-1">${it.recurso}</span>
+                    </td>
+                    <td class="p-4 text-right font-extrabold text-slate-900">R$ ${it.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
                     <td class="p-4 text-center">
-                        <button onclick="editarItemTemp(${idx})" class="text-blue-500 font-bold mr-3 hover:underline">✎ Editar</button>
-                        <button onclick="itensTemp.splice(${idx},1);renderListaTemporaria();" class="text-red-400 font-bold hover:underline">✕ Remover</button>
+                        <button onclick="editarItemTemp(${idx})" class="text-blue-600 font-bold mr-3 hover:text-blue-800 transition text-xs">✎ Editar</button>
+                        <button onclick="removerItemLote(${idx})" class="text-rose-500 font-bold hover:text-rose-700 transition text-xs">✕ Excluir</button>
                     </td>
                 </tr>`;
             }).join('');
+
             document.getElementById('tempTotal').innerText = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-            document.getElementById('contadorItens').innerText = `${itensTemp.length} Entradas`;
+            document.getElementById('contadorItens').innerText = `${itensTemp.length} ${itensTemp.length === 1 ? 'Entrada' : 'Entradas'}`;
+
+            const resumo = calcularTotalizacoesLote(itensTemp);
+            
+            document.getElementById('totalizacaoLotacaoBody').innerHTML = Object.entries(resumo.lotacoes).map(([sec, v]) => `
+                <div class="flex justify-between items-center text-xs font-semibold bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <span class="text-slate-600 uppercase truncate max-w-[200px]">${sec}</span>
+                    <span class="text-slate-900 font-bold">R$ ${v.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('totalizacaoTipoBody').innerHTML = Object.entries(resumo.combustiveis).map(([tipo, v]) => `
+                <div class="flex justify-between items-center text-xs font-medium">
+                    <span class="text-slate-500 uppercase">${tipo}</span>
+                    <span class="text-slate-800 font-bold">R$ ${v.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('totalizacaoRecursoBody').innerHTML = Object.entries(resumo.recursos).map(([rec, v]) => `
+                <div class="flex justify-between items-center text-xs font-medium">
+                    <span class="text-slate-500 uppercase">${rec}</span>
+                    <span class="text-slate-800 font-bold">R$ ${v.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                </div>
+            `).join('');
         }
 
         function finalizarRelatorio() {
-            if(itensTemp.length === 0) return alert("Adicione itens primeiro.");
+            if(itensTemp.length === 0) return alert("Não há registros lançados para finalizar.");
+            
             const rel = {
                 id: Date.now(),
-                numero: `REL-${new Date().getFullYear()}${Math.floor(Math.random()*9999)}`,
+                numero: `REL-${new Date().getFullYear()}${Math.floor(1000 + Math.random()*9000)}`,
                 data: new Date().toLocaleDateString('pt-BR'),
                 posto: itensTemp[0].posto,
                 itens: [...itensTemp],
                 total: itensTemp.reduce((a,b) => a + b.valor, 0),
                 litros: itensTemp.reduce((a,b) => a + b.litros, 0)
             };
+            
             historico.unshift(rel);
             localStorage.setItem('cha_preta_final_v3', JSON.stringify(historico));
-            itensTemp = [];
-            renderListaTemporaria();
+            
+            alert(`Relatório ${rel.numero} salvo com sucesso!`);
+            resetarLoteTotalmente();
             showPage('historico');
         }
 
         function renderHistorico() {
             const container = document.getElementById('historicoCards');
+            if (historico.length === 0) {
+                container.innerHTML = `<div class="bg-white p-12 rounded-3xl border border-slate-100 text-center text-slate-400 font-medium">Nenhum relatório salvo no histórico local até o momento.</div>`;
+                return;
+            }
+
             container.innerHTML = historico.map(rel => `
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 flex justify-between items-center shadow-sm">
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm hover:shadow-md transition">
                     <div>
-                        <div class="text-blue-600 font-black text-lg">${rel.numero}</div>
-                        <div class="text-slate-400 text-[10px] font-bold uppercase">${rel.data} - ${rel.posto}</div>
-                        <div class="text-slate-900 font-bold mt-1">Total: R$ ${rel.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-blue-600 font-extrabold text-base tracking-tight">${rel.numero}</span>
+                            <span class="bg-slate-100 text-slate-500 font-bold text-[10px] px-2 py-0.5 rounded-md uppercase">${rel.data}</span>
+                        </div>
+                        <div class="text-slate-400 text-xs font-bold uppercase mt-1">📍 POSTO: ${rel.posto}</div>
+                        <div class="text-slate-900 font-extrabold mt-2 text-base">Total Geral: <span class="text-emerald-600">R$ ${rel.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span></div>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="visualizar(${rel.id}, 'pdf')" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase">PDF</button>
-                        <button onclick="visualizar(${rel.id}, 'img')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase">Img</button>
-                        <button onclick="excluir(${rel.id})" class="text-red-400 font-bold text-xs ml-3">Excluir</button>
+                    <div class="flex gap-2 w-full md:w-auto border-t md:border-0 pt-4 md:pt-0 justify-end">
+                        <button onclick="visualizar(${rel.id}, 'pdf')" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition">📄 Visualizar PDF / Imprimir</button>
+                        <button onclick="visualizar(${rel.id}, 'img')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition">🖼️ Baixar Imagem</button>
+                        <button onclick="excluir(${rel.id})" class="text-rose-500 hover:text-rose-700 font-bold text-xs px-2 ml-2 transition">Excluir</button>
                     </div>
                 </div>
             `).join('');
@@ -292,7 +479,6 @@
         function visualizar(id, modo) {
             const rel = historico.find(r => r.id === id);
             
-            // Agrupamento Detalhado por Secretaria e Combustível
             const agrupadoSecretaria = {}; 
             const totaisRecurso = {};
             const totaisTipoGeral = {};
@@ -311,113 +497,123 @@
             const area = document.getElementById('conteudoRelatorio');
             area.innerHTML = `
                 <div class="report-text-padrão border-b-2 border-slate-900 pb-4 mb-6">
-                    <div class="flex justify-between items-start mb-2">
+                    <div class="flex justify-between items-start mb-3">
                         <div>
-                            <h1 class="text-sm font-black text-slate-900 uppercase">Prefeitura Municipal de Chã Preta/AL</h1>
+                            <h1 class="text-base font-black text-slate-900 uppercase tracking-tight">Prefeitura Municipal de Chã Preta/AL</h1>
                             <h2 class="text-xs font-bold text-slate-500 uppercase">Secretaria Municipal de Finanças</h2>
-                            <p class="font-bold text-slate-400 uppercase">POSTO: ${rel.posto}</p>
+                            <p class="font-extrabold text-slate-600 uppercase mt-1 text-[11px]">📍 POSTO: ${rel.posto}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-sm font-black text-blue-600">${rel.numero}</p>
-                            <p class="font-bold text-slate-400 uppercase">EMITIDO: ${rel.data}</p>
+                            <p class="text-base font-black text-blue-600 tracking-wider">${rel.numero}</p>
+                            <p class="font-bold text-slate-400 uppercase text-[10px]">EMISSÃO: ${rel.data}</p>
                         </div>
                     </div>
-                    <div class="bg-slate-100 p-2 rounded text-center">
-                        <h3 class="font-black text-slate-700 uppercase tracking-widest">Relatório de Pagamento de Combustível</h3>
+                    <div class="bg-slate-950 text-white p-2 rounded-lg text-center mt-4">
+                        <h3 class="font-bold text-xs uppercase tracking-widest text-slate-100">Relatório Consolidado de Combustível</h3>
                     </div>
                 </div>
                 
                 <table class="w-full mb-6 report-text-padrão">
                     <thead>
-                        <tr class="bg-slate-900 text-white uppercase">
-                            <th class="p-2 text-left">Lotação / Secretaria</th>
-                            <th class="p-2 text-left">Combustível / Recurso</th>
-                            <th class="p-2 text-right">Valor</th>
+                        <tr class="bg-slate-900 text-white uppercase text-[10px]">
+                            <th class="p-3 text-left rounded-l-md">Lotação / Secretaria</th>
+                            <th class="p-3 text-left">Combustível / Recurso</th>
+                            <th class="p-3 text-right rounded-r-md">Valor</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200">
                         ${rel.itens.map(i => `
-                            <tr>
-                                <td class="py-2 font-bold uppercase">${i.secretaria}</td>
-                                <td class="py-2 text-slate-600 uppercase">
-                                    ${i.tipo} | <span class="text-[8px] text-slate-400 italic">${i.recurso}</span>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-2.5 font-bold uppercase text-slate-800">${i.secretaria}</td>
+                                <td class="py-2.5 text-slate-600 uppercase font-medium">
+                                    <span class="font-bold text-slate-900">${i.tipo}</span> | <span class="text-[9px] text-slate-400 italic">${i.recurso}</span>
                                 </td>
-                                <td class="py-2 text-right font-black">R$ ${i.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                                <td class="py-2.5 text-right font-black text-slate-900">R$ ${i.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
 
-                <div class="grid grid-cols-2 gap-4 mb-6 report-text-padrão">
-                    <div class="bg-slate-50 p-3 rounded border border-slate-200">
-                        <h4 class="font-black text-slate-900 uppercase border-b border-slate-300 mb-2">Totalização por Lotação</h4>
-                        ${Object.entries(agrupadoSecretaria).map(([sec, dados]) => `
-                            <div class="mb-3 last:mb-0">
-                                <div class="font-bold text-blue-700 uppercase mb-0.5">${sec}</div>
-                                ${Object.entries(dados.combustiveis).map(([comb, v]) => `
-                                    <div class="flex justify-between pl-2 border-l border-slate-300 mb-0.5 text-[9px]">
-                                        <span class="text-slate-500 uppercase">${comb}</span>
-                                        <span>R$ ${v.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                <div class="grid grid-cols-2 gap-6 mb-6 report-text-padrão">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <h4 class="font-black text-slate-900 text-[11px] uppercase border-b border-slate-300 pb-1 mb-3 tracking-wide">Totalização por Lotação</h4>
+                        <div class="space-y-3">
+                            ${Object.entries(agrupadoSecretaria).map(([sec, dados]) => `
+                                <div class="bg-white p-2 rounded border border-slate-200/60 shadow-2xs">
+                                    <div class="font-extrabold text-blue-800 uppercase mb-1 text-[11px]">${sec}</div>
+                                    <div class="space-y-0.5 mb-1.5">
+                                        ${Object.entries(dados.combustiveis).map(([comb, v]) => `
+                                            <div class="flex justify-between pl-2 border-l-2 border-slate-300 text-[10px] text-slate-500 font-medium uppercase">
+                                                <span>${comb}</span>
+                                                <span class="text-slate-700">R$ ${v.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                                            </div>
+                                        `).join('')}
                                     </div>
-                                `).join('')}
-                                <div class="flex justify-between font-black bg-slate-200/50 px-1 rounded">
-                                    <span>TOTAL</span>
-                                    <span>R$ ${dados.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="bg-white p-3 rounded border border-slate-200">
-                            <h4 class="font-black text-slate-900 uppercase border-b border-slate-300 mb-2">Resumo por Recurso</h4>
-                            ${Object.entries(totaisRecurso).map(([rec, val]) => `
-                                <div class="flex justify-between mb-0.5 uppercase">
-                                    <span class="text-slate-600">${rec}</span>
-                                    <span class="font-bold">R$ ${val.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                                    <div class="flex justify-between font-black bg-slate-100 px-1.5 py-0.5 rounded text-[10px] text-slate-900">
+                                        <span>SUBTOTAL</span>
+                                        <span>R$ ${dados.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
-                        <div class="bg-white p-3 rounded border border-slate-200">
-                            <h4 class="font-black text-slate-900 uppercase border-b border-slate-300 mb-2">Resumo por Combustível</h4>
-                            ${Object.entries(totaisTipoGeral).map(([tipo, val]) => `
-                                <div class="flex justify-between mb-0.5 uppercase">
-                                    <span class="text-slate-600">${tipo}</span>
-                                    <span class="font-bold">R$ ${val.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
-                                </div>
-                            `).join('')}
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200">
+                            <h4 class="font-black text-slate-900 text-[11px] uppercase border-b border-slate-300 pb-1 mb-2 tracking-wide">Resumo por Recurso</h4>
+                            <div class="space-y-1">
+                                ${Object.entries(totaisRecurso).map(([rec, val]) => `
+                                    <div class="flex justify-between items-center py-0.5 uppercase text-[10px] font-medium">
+                                        <span class="text-slate-600">${rec}</span>
+                                        <span class="font-bold text-slate-900">R$ ${val.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200">
+                            <h4 class="font-black text-slate-900 text-[11px] uppercase border-b border-slate-300 pb-1 mb-2 tracking-wide">Resumo por Combustível</h4>
+                            <div class="space-y-1">
+                                ${Object.entries(totaisTipoGeral).map(([tipo, val]) => `
+                                    <div class="flex justify-between items-center py-0.5 uppercase text-[10px] font-medium">
+                                        <span class="text-slate-600">${tipo}</span>
+                                        <span class="font-bold text-slate-900">R$ ${val.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mt-8 border-t pt-4 report-text-padrão">
-                    <div><p class="text-[8px] text-slate-400 uppercase font-bold italic">Documento de controle interno.</p></div>
-                    <div class="bg-slate-900 text-white p-4 rounded shadow-lg">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-[9px] uppercase text-slate-400">Volume (L)</span>
-                            <span class="font-bold">${rel.litros.toFixed(3)} L</span>
+                <div class="grid grid-cols-2 gap-4 mt-8 border-t-2 border-slate-200 pt-4 report-text-padrão">
+                    <div class="flex items-end"><p class="text-[9px] text-slate-400 uppercase font-bold italic tracking-wide">Documento Gerencial de Controle Interno — Chã Preta/AL</p></div>
+                    <div class="bg-slate-950 text-white p-4 rounded-xl shadow-md">
+                        <div class="flex justify-between items-center mb-1 pb-1 border-b border-slate-800">
+                            <span class="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Volume Total do Lote</span>
+                            <span class="font-bold text-slate-200 text-xs">${rel.litros.toFixed(3)} L</span>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-[9px] uppercase text-slate-400">Total Geral</span>
-                            <span class="text-lg font-black text-blue-400">R$ ${rel.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                        <div class="flex justify-between items-center pt-1">
+                            <span class="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Valor Total Geral</span>
+                            <span class="text-base font-black text-blue-400">R$ ${rel.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
                         </div>
                     </div>
                 </div>
             `;
             const pa = document.getElementById('printArea');
             pa.classList.remove('hidden');
-            if(modo === 'pdf') { window.print(); pa.classList.add('hidden'); }
-            else { 
-                html2canvas(area, {scale:2}).then(c => {
+            if(modo === 'pdf') { 
+                window.print(); 
+                pa.classList.add('hidden'); 
+            } else { 
+                html2canvas(area, {scale:3}).then(c => {
                     const l = document.createElement('a'); l.download = `${rel.numero}.png`;
                     l.href = c.toDataURL(); l.click(); pa.classList.add('hidden');
                 });
             }
         }
 
-        function excluir(id) { if(confirm("Excluir relatório?")) { historico = historico.filter(r => r.id !== id); localStorage.setItem('cha_preta_final_v3', JSON.stringify(historico)); renderHistorico(); } }
-        function exportarBackup() { const ds = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(historico)); const a = document.createElement('a'); a.href = ds; a.download = `backup_financas.json`; a.click(); }
-        function importarBackup(i) { const r = new FileReader(); r.onload = e => { historico = JSON.parse(e.target.result); localStorage.setItem('cha_preta_final_v3', JSON.stringify(historico)); renderHistorico(); }; r.readAsText(i.files[0]); }
+        function excluir(id) { if(confirm("Deseja realmente excluir permanentemente este relatório do histórico?")) { historico = historico.filter(r => r.id !== id); localStorage.setItem('cha_preta_final_v3', JSON.stringify(historico)); renderHistorico(); } }
+        function exportarBackup() { const ds = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(historico)); const a = document.createElement('a'); a.href = ds; a.download = `backup_combustivel_financas.json`; a.click(); }
+        function importarBackup(i) { const r = new FileReader(); r.onload = e => { try { historico = JSON.parse(e.target.result); localStorage.setItem('cha_preta_final_v3', JSON.stringify(historico)); renderHistorico(); alert("Backup restaurado com sucesso!"); } catch(err) { alert("Arquivo JSON inválido."); } }; r.readAsText(i.files[0]); }
 
         renderListaTemporaria();
     </script>
