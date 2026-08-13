@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Pendências - Prefeitura Municipal de Chã Preta / AL</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @media print {
+            body { background: white; overflow: visible !important; }
+            .no-print { display: none !important; }
+            .print-area { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+        }
+        .table-print th, .table-print td {
+            border: 1px solid #cbd5e1;
+            padding: 5px 6px;
+            font-size: 10px;
+            word-break: break-word;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col h-screen overflow-hidden">
+
+    <!-- Cabeçalho do Sistema -->
+    <header class="bg-blue-900 text-white shadow-md py-3 px-5 no-print flex-shrink-0">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-file-invoice-dollar text-2xl text-yellow-400"></i>
+                <div>
+                    <h1 class="text-base font-bold uppercase tracking-wider leading-tight">Prefeitura Municipal de Chã Preta / AL</h1>
+                    <p class="text-[11px] text-blue-200">Secretaria Municipal de Finanças - Sistema de Controle de Pendências</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="switchTab('workspace')" id="btn-workspace" class="px-3 py-1.5 bg-blue-800 hover:bg-blue-700 text-white font-medium rounded-lg text-xs transition shadow-inner flex items-center gap-1.5">
+                    <i class="fa-solid fa-table-columns"></i> Área de Trabalho 
+                </button>
+                <button onclick="switchTab('history')" id="btn-history" class="px-3 py-1.5 bg-blue-950 hover:bg-blue-900 text-white font-medium rounded-lg text-xs transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Histórico / Consulta
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-grow flex overflow-hidden p-3 gap-3">
+
+        <!-- TELA DIVIDIDA 50% X 50% (ÁREA DE TRABALHO) -->
+        <div id="tab-workspace" class="w-full h-full flex flex-col md:flex-row gap-3 overflow-hidden">
+            
+            <!-- PAINEL ESQUERDO (50%): FORMULÁRIO E LISTA TEMPORÁRIA -->
+            <div class="w-full md:w-1/2 h-full flex flex-col gap-3 overflow-y-auto pr-1 no-print">
+                
+                <!-- Card 1: Formulário de Entrada -->
+                <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-yellow-500">
+                    <div class="flex justify-between items-center mb-3 border-b pb-2">
+                        <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus-circle text-blue-900"></i> Cadastrar Credor / Processo
+                        </h2>
+                        <span id="edit-mode-badge" class="hidden bg-yellow-100 text-yellow-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-yellow-300">Modo de Edição</span>
+                    </div>
+
+                    <form id="itemForm" onsubmit="addItemToList(event)" class="space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Credor / Empresa *</label>
+                                <input type="text" id="credor" required class="w-full px-2.5 py-1 border rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="Razão Social">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">CNPJ *</label>
+                                <input type="text" id="cnpj" required class="w-full px-2.5 py-1 border rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="00.000.000/0000-00">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Nota Nº *</label>
+                                <input type="text" id="nota" required class="w-full px-2.5 py-1 border rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="Ex: 001234">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Valor (R$) *</label>
+                                <input type="text" id="valor" required class="w-full px-2.5 py-1 border rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="0,00">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Lotação *</label>
+                                <select id="lotacaoSelect" onchange="toggleOutroLotacao()" required class="w-full px-2 py-1 border rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white">
+                                    <option value="">Selecione...</option>
+                                    <option value="FUNSERP">FUNSERP</option>
+                                    <option value="GABINETE">GABINETE</option>
+                                    <option value="SEC. MUN. DE ADMINISTRAÇÃO">SEC. MUN. DE ADMINISTRAÇÃO</option>
+                                    <option value="SEC. MUN. DE AGRICULTURA">SEC. MUN. DE AGRICULTURA</option>
+                                    <option value="SEC. MUN. DE ASSISTENCIA SOCIAL">SEC. MUN. DE ASSISTENCIA SOCIAL</option>
+                                    <option value="SEC. MUN. DE CULTURA">SEC. MUN. DE CULTURA</option>
+                                    <option value="SEC. MUN. DE EDUCAÇÃO">SEC. MUN. DE EDUCAÇÃO</option>
+                                    <option value="SEC. MUN. DE ESPORTE">SEC. MUN. DE ESPORTE</option>
+                                    <option value="SEC. MUN. DE FINANÇAS">SEC. MUN. DE FINANÇAS</option>
+                                    <option value="SEC. MUN. DE GOVERNO">SEC. MUN. DE GOVERNO</option>
+                                    <option value="SEC. MUN. DE INFRAESTRUTURA">SEC. MUN. DE INFRAESTRUTURA</option>
+                                    <option value="SEC. MUN. DE SAUDE">SEC. MUN. DE SAUDE</option>
+                                    <option value="OUTRO(S)">OUTRO(S)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Campo extra para OUTRO(S) -->
+                        <div id="outroLotacaoDiv" class="hidden">
+                            <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Especifique a Lotação *</label>
+                            <input type="text" id="outroLotacaoInput" class="w-full px-2.5 py-1 border rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="Digite o nome da secretaria/departamento">
+                        </div>
+
+                        <!-- Seleção de Pendências -->
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 mb-1">Pendências:</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-slate-50 p-2.5 rounded-md border text-[11px]">
+                                <label class="flex items-center space-x-1.5 cursor-pointer">
+                                    <input type="checkbox" name="pendencia" value="Certidão Negativa de Débitos Federais" class="w-3.5 h-3.5 text-blue-600 rounded">
+                                    <span>Certidão Negativa de Débitos Federais</span>
+                                </label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer">
+                                    <input type="checkbox" name="pendencia" value="Certidão Negativa de Débitos Estaduais" class="w-3.5 h-3.5 text-blue-600 rounded">
+                                    <span>Certidão Negativa de Débitos Estaduais</span>
+                                </label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer">
+                                    <input type="checkbox" name="pendencia" value="Certidão Negativa de Débitos Municipais" class="w-3.5 h-3.5 text-blue-600 rounded">
+                                    <span>Certidão Negativa de Débitos Municipais</span>
+                                </label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer">
+                                    <input type="checkbox" name="pendencia" value="Certidão Negativa de Débitos Trabalhistas - TST" class="w-3.5 h-3.5 text-blue-600 rounded">
+                                    <span>Certidão Negativa de Débitos Trabalhistas - TST</span>
+                                </label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer">
+                                    <input type="checkbox" name="pendencia" value="Certidão Negativa de Débitos Caixa - FGTS" class="w-3.5 h-3.5 text-blue-600 rounded">
+                                    <span>Certidão Negativa de Débitos Caixa - FGTS</span>
+                                </label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer">
+                                    <input type="checkbox" name="pendencia" value="Dados Bancários" class="w-3.5 h-3.5 text-blue-600 rounded">
+                                    <span>Dados Bancários</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Outras Pendências</label>
+                                <input type="text" id="outrasPendencias" class="w-full px-2.5 py-1 border rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="Digite outras pendências...">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Outras Observações</label>
+                                <input type="text" id="observacoes" class="w-full px-2.5 py-1 border rounded-md text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none" placeholder="Observações adicionais...">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-1">
+                            <button type="submit" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md text-xs shadow transition flex items-center gap-1">
+                                <i class="fa-solid fa-plus"></i> Adicionar Credor à Tabela
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Card 2: Controle de Itens Adicionados -->
+                <div class="bg-white rounded-xl shadow-sm p-4 border-t-4 border-blue-900 flex-grow flex flex-col min-h-[200px]">
+                    <div class="flex justify-between items-center mb-2 pb-1 border-b">
+                        <h2 class="text-xs font-bold text-slate-800">
+                            Processos Adicionados neste Relatório (<span id="item-count">0</span>)
+                        </h2>
+                        <button onclick="resetFullReport()" class="text-[11px] text-slate-500 hover:text-red-600 underline">
+                            Limpar Tudo
+                        </button>
+                    </div>
+
+                    <div class="overflow-y-auto flex-grow max-h-[220px]">
+                        <table class="w-full text-left border-collapse text-[11px]">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 font-semibold border-b">
+                                    <th class="p-1.5">Credor</th>
+                                    <th class="p-1.5">Nota</th>
+                                    <th class="p-1.5">Valor</th>
+                                    <th class="p-1.5">Lotação</th>
+                                    <th class="p-1.5 text-center">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="temp-items-body" class="divide-y divide-slate-100">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                        </table>
+                        <div id="no-items-warning" class="text-center py-6 text-slate-400 text-xs">
+                            Nenhum credor adicionado ainda.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- PAINEL DIREITO (50%): VISUALIZAÇÃO DO RELATÓRIO EM TEMPO REAL -->
+            <div class="w-full md:w-1/2 h-full flex flex-col bg-slate-200 rounded-xl p-3 overflow-hidden border border-slate-300">
+                
+                <!-- Barra de Ações -->
+                <div class="flex justify-between items-center bg-white p-2.5 rounded-lg shadow-sm mb-3 no-print flex-shrink-0">
+                    <span class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                        <i class="fa-solid fa-eye text-blue-900"></i> Pré-visualização ao Vivo
+                    </span>
+                    <div class="flex gap-2">
+                        <button onclick="downloadImage()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md text-xs transition shadow flex items-center gap-1">
+                            <i class="fa-solid fa-download"></i> Baixar Imagem
+                        </button>
+                        <button onclick="window.print()" class="px-3 py-1.5 bg-blue-900 hover:bg-blue-800 text-white font-medium rounded-md text-xs transition shadow flex items-center gap-1">
+                            <i class="fa-solid fa-print"></i> Imprimir / PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FOLHA DO RELATÓRIO (ÁREA IMPRESSA) -->
+                <div class="flex-grow overflow-y-auto bg-white rounded-lg shadow p-5 border border-slate-300 print-area" id="report-printable">
+                    
+                    <!-- Cabeçalho Oficial -->
+                    <div class="text-center border-b-2 border-slate-900 pb-3 space-y-1">
+                        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-900">Prefeitura Municipal de Chã Preta / AL</h2>
+                        <h3 class="text-xs font-bold text-blue-900 uppercase">Secretaria Municipal de Finanças</h3>
+                        <div class="flex justify-between items-center pt-2 px-1 text-[10px]">
+                            <span class="font-bold text-slate-700 uppercase">Relatório de Pendências de Processos de Pagamentos</span>
+                            <span id="prev-report-num" class="font-mono font-bold text-slate-900">RELATÓRIO Nº: ----</span>
+                        </div>
+                    </div>
+
+                    <!-- Tabela Estilo Planilha -->
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="w-full text-left border-collapse table-print">
+                            <thead>
+                                <tr class="bg-slate-100 uppercase text-slate-800 font-bold text-[9px]">
+                                    <th style="width: 18%;">Credor / Empresa</th>
+                                    <th style="width: 14%;">CNPJ</th>
+                                    <th style="width: 8%;">Nota Nº</th>
+                                    <th style="width: 12%;">Valor</th>
+                                    <th style="width: 16%;">Lotação</th>
+                                    <th style="width: 22%;">Pendências Identificadas</th>
+                                    <th style="width: 10%;">Obs.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="prev-table-body">
+                                <tr>
+                                    <td colspan="7" class="text-center py-6 text-slate-400 italic">
+                                        Nenhum processo inserido na lista.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Rodapé Simplificado sem nome de responsável -->
+                    <div class="mt-12 text-center text-xs space-y-6">
+                        <div class="w-72 mx-auto border-t border-slate-800 pt-1">
+                            <p class="font-bold text-slate-900 uppercase">Secretaria Municipal de Finanças</p>
+                        </div>
+                        <p id="prev-data-geracao" class="text-slate-500 font-mono text-[9px]"></p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ABA 2: HISTÓRICO / CONSULTA -->
+        <div id="tab-history" class="w-full h-full hidden bg-white rounded-xl shadow-md p-6 overflow-y-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 border-b pb-4 gap-4">
+                <h2 class="text-lg font-bold text-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-box-archive text-blue-900"></i> Histórico de Relatórios Gerados
+                </h2>
+                <div class="w-full md:w-72">
+                    <input type="text" id="searchHistory" oninput="filterHistory()" placeholder="Buscar por número do relatório..." class="w-full px-3 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 uppercase font-semibold border-b">
+                            <th class="p-3">Relatório Nº</th>
+                            <th class="p-3">Qtd. Processos</th>
+                            <th class="p-3">Data de Geração</th>
+                            <th class="p-3 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="divide-y divide-slate-200">
+                        <!-- Preenchido via JS -->
+                    </tbody>
+                </table>
+                <div id="no-history" class="hidden text-center py-8 text-slate-400">
+                    Nenhum relatório salvo no histórico.
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JavaScript -->
+    <script>
+        const STORAGE_KEY = 'cha_preta_multi_relatorios_v3';
+        
+        let currentReportId = null;
+        let currentItems = [];
+
+        // Alternar entre Área de Trabalho e Histórico
+        function switchTab(tabName) {
+            document.getElementById('tab-workspace').classList.add('hidden');
+            document.getElementById('tab-history').classList.add('hidden');
+
+            document.getElementById('btn-workspace').classList.remove('bg-blue-800', 'shadow-inner');
+            document.getElementById('btn-history').classList.remove('bg-blue-800', 'shadow-inner');
+            document.getElementById('btn-workspace').classList.add('bg-blue-950');
+            document.getElementById('btn-history').classList.add('bg-blue-950');
+
+            if (tabName === 'workspace') {
+                document.getElementById('tab-workspace').classList.remove('hidden');
+                document.getElementById('btn-workspace').classList.add('bg-blue-800', 'shadow-inner');
+                document.getElementById('btn-workspace').classList.remove('bg-blue-950');
+            } else if (tabName === 'history') {
+                document.getElementById('tab-history').classList.remove('hidden');
+                document.getElementById('btn-history').classList.add('bg-blue-800', 'shadow-inner');
+                document.getElementById('btn-history').classList.remove('bg-blue-950');
+                loadHistoryTable();
+            }
+        }
+
+        // Toggle Lotação "OUTRO(S)"
+        function toggleOutroLotacao() {
+            const select = document.getElementById('lotacaoSelect');
+            const outroDiv = document.getElementById('outroLotacaoDiv');
+            const outroInput = document.getElementById('outroLotacaoInput');
+            
+            if (select.value === 'OUTRO(S)') {
+                outroDiv.classList.remove('hidden');
+                outroInput.required = true;
+            } else {
+                outroDiv.classList.add('hidden');
+                outroInput.required = false;
+                outroInput.value = '';
+            }
+        }
+
+        // Máscaras de Entrada
+        document.getElementById('cnpj').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 14) value = value.slice(0, 14);
+            value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+            value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+            value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+            value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            e.target.value = value;
+        });
+
+        document.getElementById('valor').addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            value = (Number(value) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            e.target.value = value.replace('R$', '').trim();
+        });
+
+        function generateReportNumber() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const randomNum = Math.floor(1000 + Math.random() * 9000);
+            return `${day}${month}${year}-${randomNum}`;
+        }
+
+        // Adicionar item e atualizar visualização na hora
+        function addItemToList(event) {
+            event.preventDefault();
+
+            const select = document.getElementById('lotacaoSelect');
+            let lotacaoVal = select.value;
+            if (lotacaoVal === 'OUTRO(S)') {
+                const outro = document.getElementById('outroLotacaoInput').value.trim();
+                lotacaoVal = outro ? `OUTRO(S) - ${outro}` : 'OUTRO(S)';
+            }
+
+            const checkboxes = document.querySelectorAll('input[name="pendencia"]:checked');
+            let pendenciasList = Array.from(checkboxes).map(cb => cb.value);
+
+            const outrasPendencias = document.getElementById('outrasPendencias').value.trim();
+            if (outrasPendencias) {
+                pendenciasList.push(outrasPendencias);
+            }
+
+            const newItem = {
+                credor: document.getElementById('credor').value,
+                cnpj: document.getElementById('cnpj').value,
+                nota: document.getElementById('nota').value,
+                valor: 'R$ ' + document.getElementById('valor').value,
+                lotacao: lotacaoVal,
+                pendencias: pendenciasList,
+                observacoes: document.getElementById('observacoes').value.trim()
+            };
+
+            currentItems.push(newItem);
+            
+            if (!currentReportId) {
+                currentReportId = generateReportNumber();
+            }
+
+            // Atualiza tabelas e salva automaticamente
+            updateAll();
+
+            // Limpa formulário
+            document.getElementById('itemForm').reset();
+            toggleOutroLotacao();
+        }
+
+        function removeItem(index) {
+            currentItems.splice(index, 1);
+            updateAll();
+        }
+
+        function resetFullReport() {
+            currentReportId = null;
+            currentItems = [];
+            document.getElementById('itemForm').reset();
+            document.getElementById('edit-mode-badge').classList.add('hidden');
+            toggleOutroLotacao();
+            updateAll();
+        }
+
+        function updateAll() {
+            renderTempTable();
+            renderPreview();
+            if (currentItems.length > 0) {
+                autoSave();
+            }
+        }
+
+        function renderTempTable() {
+            const tbody = document.getElementById('temp-items-body');
+            const warning = document.getElementById('no-items-warning');
+            document.getElementById('item-count').innerText = currentItems.length;
+            tbody.innerHTML = '';
+
+            if (currentItems.length === 0) {
+                warning.classList.remove('hidden');
+                return;
+            } else {
+                warning.classList.add('hidden');
+            }
+
+            currentItems.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b";
+                tr.innerHTML = `
+                    <td class="p-1.5 font-medium">${item.credor}</td>
+                    <td class="p-1.5">${item.nota}</td>
+                    <td class="p-1.5">${item.valor}</td>
+                    <td class="p-1.5 text-[10px] text-slate-600">${item.lotacao}</td>
+                    <td class="p-1.5 text-center">
+                        <button onclick="removeItem(${index})" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPreview() {
+            const now = new Date();
+            const formattedDate = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR');
+
+            document.getElementById('prev-report-num').innerText = `RELATÓRIO Nº: ${currentReportId || '----'}`;
+            document.getElementById('prev-data-geracao').innerText = `Data de Geração do Relatório: ${formattedDate}`;
+
+            const tbody = document.getElementById('prev-table-body');
+            tbody.innerHTML = '';
+
+            if (currentItems.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-6 text-slate-400 italic">
+                            Nenhum processo inserido na lista.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            currentItems.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${item.credor}</strong></td>
+                    <td>${item.cnpj}</td>
+                    <td>${item.nota}</td>
+                    <td>${item.valor}</td>
+                    <td>${item.lotacao}</td>
+                    <td class="text-red-800 font-semibold">${item.pendencias.join('; ') || 'Nenhuma'}</td>
+                    <td>${item.observacoes || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Salvar automaticamente no LocalStorage
+        function autoSave() {
+            if (!currentReportId || currentItems.length === 0) return;
+
+            const now = new Date();
+            const reportData = {
+                id: currentReportId,
+                dataGeracao: now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR'),
+                items: currentItems
+            };
+
+            let reports = getStoredReports();
+            const index = reports.findIndex(r => r.id === reportData.id);
+            if (index >= 0) {
+                reports[index] = reportData;
+            } else {
+                reports.unshift(reportData);
+            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+        }
+
+        function getStoredReports() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function loadHistoryTable(filterText = '') {
+            const tbody = document.getElementById('history-table-body');
+            const noHistory = document.getElementById('no-history');
+            tbody.innerHTML = '';
+
+            let reports = getStoredReports();
+
+            if (filterText) {
+                const query = filterText.toLowerCase();
+                reports = reports.filter(r => r.id.toLowerCase().includes(query));
+            }
+
+            if (reports.length === 0) {
+                noHistory.classList.remove('hidden');
+                return;
+            } else {
+                noHistory.classList.add('hidden');
+            }
+
+            reports.forEach(report => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b";
+                tr.innerHTML = `
+                    <td class="p-3 font-mono font-semibold text-blue-900">${report.id}</td>
+                    <td class="p-3">${report.items.length} processo(s)</td>
+                    <td class="p-3 text-slate-500 text-xs">${report.dataGeracao}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button onclick="editReport('${report.id}')" title="Carregar no Painel" class="text-blue-600 hover:text-blue-900 font-medium text-xs bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                            <i class="fa-solid fa-folder-open mr-1"></i> Abrir / Editar
+                        </button>
+                        <button onclick="deleteReport('${report.id}')" title="Excluir" class="text-red-600 hover:text-red-900 px-1"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function editReport(id) {
+            const reports = getStoredReports();
+            const report = reports.find(r => r.id === id);
+            if (!report) return;
+
+            currentReportId = report.id;
+            currentItems = [...report.items];
+
+            document.getElementById('edit-mode-badge').classList.remove('hidden');
+            updateAll();
+            switchTab('workspace');
+        }
+
+        function deleteReport(id) {
+            if (confirm('Deseja realmente excluir este relatório do histórico?')) {
+                let reports = getStoredReports();
+                reports = reports.filter(r => r.id !== id);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+                loadHistoryTable();
+            }
+        }
+
+        function filterHistory() {
+            const query = document.getElementById('searchHistory').value;
+            loadHistoryTable(query);
+        }
+
+        function downloadImage() {
+            if (currentItems.length === 0) {
+                alert('Adicione pelo menos um credor antes de baixar a imagem.');
+                return;
+            }
+            const element = document.getElementById('report-printable');
+            html2canvas(element, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Relatorio_Pendencias_${currentReportId || 'ChaPreta'}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
