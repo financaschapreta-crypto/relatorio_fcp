@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Relatórios</title>
+<style>
+  :root{
+    --navy-950:#0b1220;
+    --navy-900:#101a30;
+    --navy-800:#16223f;
+    --slate-100:#eef1f7;
+    --slate-300:#aab4c8;
+    --slate-400:#7c88a3;
+    --gold-400:#d4af6a;
+    --gold-300:#e8caa0;
+    --emerald-500:#2f8f6b;
+    --emerald-400:#3fae83;
+    --danger:#e0654f;
+    --radius-lg:18px;
+    --radius-md:12px;
+    --shadow-soft: 0 20px 50px -20px rgba(6,10,20,0.6);
+    --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --font-body: 'Inter', 'Segoe UI', Tahoma, sans-serif;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family: var(--font-body);
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(63,174,131,0.16), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(212,175,106,0.12), transparent 55%),
+      var(--navy-950);
+    color: var(--slate-100);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding: 24px;
+  }
+
+  .stage{ width:100%; max-width: 880px; }
+
+  /* ---------- shared card look ---------- */
+  .panel{
+    background: linear-gradient(180deg, var(--navy-900), var(--navy-800));
+    border: 1px solid rgba(212,175,106,0.14);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    padding: 44px;
+  }
+
+  .eyebrow{
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.72rem;
+    color: var(--gold-400);
+    font-weight: 600;
+    margin: 0 0 10px;
+  }
+
+  h1{
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--slate-100);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+
+  p.lead{
+    color: var(--slate-300);
+    margin: 0 0 28px;
+    line-height: 1.55;
+  }
+
+  .btn{
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    font-family: var(--font-body);
+    font-weight:600;
+    font-size: 1rem;
+    border-radius: var(--radius-md);
+    padding: 13px 20px;
+    transition: transform .15s ease, box-shadow .15s ease, background .2s ease;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--emerald-500), var(--emerald-400));
+    color: #08150f;
+  }
+  .btn-primary:hover{ transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(63,174,131,0.5); }
+  .btn-primary:active{ transform: translateY(0); }
+
+  /* ---------- welcome / access card ---------- */
+  #welcome-container{ display:block; text-align:center; }
+  .org-footer{
+    margin: 28px 0 0;
+    padding-top: 18px;
+    border-top: 1px solid rgba(212,175,106,0.16);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--slate-400);
+    letter-spacing: 0.02em;
+  }
+  #welcome-container .signature{
+    width:46px; height:46px; border-radius:50%;
+    margin: 0 auto 18px;
+    background: conic-gradient(from 210deg, var(--gold-400), var(--emerald-400), var(--gold-300), var(--gold-400));
+  }
+  #welcome-container h1{ font-size: 2.1rem; }
+
+  /* ---------- dashboard grid ---------- */
+  #dashboard-container{ display:none; }
+  #dashboard-container .eyebrow, #dashboard-container p.lead{ text-align:left; }
+  #dashboard-container h1{ font-size: 1.9rem; text-align:left; }
+
+  .back-link{
+    display:inline-block;
+    color: var(--slate-400);
+    text-decoration:none;
+    font-size: 0.85rem;
+    margin-bottom: 18px;
+    border-bottom: 1px solid transparent;
+  }
+  .back-link:hover{ color: var(--gold-300); border-color: var(--gold-300); }
+
+  .dashboard-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 22px;
+  }
+
+  .dashboard-button{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:4px;
+    padding: 22px 20px;
+    min-height: 92px;
+    background: rgba(63,174,131,0.06);
+    border: 1px solid rgba(212,175,106,0.2);
+    border-radius: var(--radius-md);
+    text-decoration:none;
+    color: var(--slate-100);
+    font-weight: 600;
+    font-size: 1.02rem;
+    transition: all .2s ease;
+  }
+  .dashboard-button .tag{
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--gold-400);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .dashboard-button:hover{
+    background: linear-gradient(135deg, rgba(63,174,131,0.18), rgba(212,175,106,0.1));
+    border-color: var(--emerald-400);
+    transform: translateY(-4px);
+    box-shadow: 0 14px 26px -14px rgba(0,0,0,0.55);
+  }
+
+  @media (max-width: 520px){
+    .panel{ padding: 30px 22px; }
+    h1{ font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- WELCOME / GATEWAY CARD -->
+  <div class="panel" id="welcome-container">
+    <div class="signature"></div>
+    <p class="eyebrow">Bem-vindo(a)</p>
+    <h1>Painel de Relatórios</h1>
+    <p class="lead">Escolha abaixo para abrir a central de relatórios.</p>
+    <button class="btn btn-primary" onclick="mostrarDashboard()">Acessar Relatórios</button>
+    <p class="org-footer">Prefeitura Municipal de Chã Preta/AL<br>Secretaria Municipal de Finanças</p>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="panel" id="dashboard-container">
+    <a href="#" class="back-link" onclick="voltarWelcome(); return false;">&larr; Voltar</a>
+    <p class="eyebrow">Central de relatórios</p>
+    <h1>Painel de Relatórios</h1>
+    <p class="lead">Selecione o tipo de relatório que deseja acessar:</p>
+
+    <div class="dashboard-grid">
+      <a href="Rec_Pag.html" class="dashboard-button"><span class="tag">Financeiro</span>Relatório de Pagamentos Simples</a>
+      <a href="Rela.html" class="dashboard-button"><span class="tag">Financeiro</span>Relatório de Pagamentos Detalhado</a>
+      <a href="combustivel.html" class="dashboard-button"><span class="tag">Frota</span>Relatório de Combustível</a>
+      <a href="Relatorio_Contabil.html" class="dashboard-button"><span class="tag">Contabilidade</span>Relatório à Contabilidade</a>
+      <a href="nota.html" class="dashboard-button"><span class="tag">Serviços</span>Demonstrativo de Nota de Serviço</a>
+      <a href="Oficio_Solicitacao.html" class="dashboard-button"><span class="tag">Administrativo</span>Ofícios</a>
+      <a href="relatorio_pendencias_cha_preta.html" class="dashboard-button"><span class="tag">Administrativo</span>Relatório de Pendências Processuais</a>
+      <a href="obras.html" class="dashboard-button"><span class="tag">Obras</span>Gestão de Obras</a>
+      <a href="diario.html" class="dashboard-button"><span class="tag">Geral</span>Outros Relatórios</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function mostrarDashboard(){
+    document.getElementById('welcome-container').style.display = 'none';
+    document.getElementById('dashboard-container').style.display = 'block';
+  }
+
+  function voltarWelcome(){
+    document.getElementById('dashboard-container').style.display = 'none';
+    document.getElementById('welcome-container').style.display = 'block';
+  }
+</script>
+
+</body>
+</html>
