@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Abastecimento</title>
+    <style>
+        :root {
+            --primary: #1a365d;
+            --bg: #f4f6f9;
+            --card-bg: #ffffff;
+            --border: #cbd5e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 20px;
+            background-color: var(--bg);
+            color: #2d3748;
+        }
+
+        h1, h2 { color: var(--primary); }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 0.9rem; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+
+        button { background-color: #2b6cb0; color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; margin-right: 8px; font-weight: 600; }
+        button:hover { background-color: #2c5282; }
+        button.btn-danger { background-color: #e53e3e; }
+        button.btn-success { background-color: #38a169; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        table, th, td { border: 1px solid var(--border); }
+        th, td { padding: 8px; text-align: left; }
+        th { background-color: #edf2f7; }
+
+        .status-fechado { color: #e53e3e; font-weight: bold; }
+        .status-aberto { color: #38a169; font-weight: bold; }
+
+        /* ESTILO NOTA FISCAL / RELATÓRIO */
+        .relatorio-container { background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 6px; }
+        .nf-header { text-align: center; border-bottom: 2px dashed #a0aec0; padding-bottom: 12px; margin-bottom: 15px; }
+        .nf-header h2 { margin: 0 0 5px 0; font-size: 1.3rem; text-transform: uppercase; }
+        .nf-meta { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 15px; background: #f7fafc; padding: 8px 12px; border-radius: 4px; border: 1px solid #edf2f7; }
+        .nf-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.82rem; }
+        .nf-table th, .nf-table td { border: none; border-bottom: 1px solid #e2e8f0; padding: 5px 6px; }
+        .nf-table th { background: transparent; border-bottom: 1.5px solid #4a5568; text-transform: uppercase; font-size: 0.75rem; }
+        .nf-table .text-right { text-align: right; }
+        .nf-table .text-center { text-align: center; }
+        .nf-section-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; margin: 15px 0 6px 0; color: #2d3748; border-left: 3px solid #2b6cb0; padding-left: 6px; }
+        .nf-footer { margin-top: 30px; padding-top: 15px; border-top: 1px dashed #a0aec0; display: flex; justify-content: space-around; text-align: center; font-size: 0.75rem; }
+        .assinatura-linha { width: 180px; border-top: 1px solid #718096; margin-top: 30px; padding-top: 4px; }
+
+        @media print {
+            @page { size: A4 portrait; margin: 8mm; }
+            .no-print { display: none !important; }
+            body { background: #fff; margin: 0; padding: 0; font-size: 10pt; }
+            .card { box-shadow: none; border: none; padding: 0; margin: 0; }
+            .relatorio-container { border: 1px solid #000; padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="no-print">Sistema de Controle de Abastecimento</h1>
+
+    <div class="card no-print">
+        <h2>Parâmetros Gerais</h2>
+        <div style="display: flex; gap: 15px;">
+            <div class="form-group" style="flex: 1;">
+                <label for="mes">Mês/Ano:</label>
+                <input type="month" id="mes" onchange="gerarRelatorios()">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="quinzena">Quinzena:</label>
+                <select id="quinzena" onchange="gerarRelatorios()">
+                    <option value="1ª Quinzena">1ª Quinzena</option>
+                    <option value="2ª Quinzena">2ª Quinzena</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="card no-print">
+        <h2>Lançamento de Abastecimento</h2>
+        <p>Status da Lotação: <span id="statusLotacao" class="status-aberto">Aberta para lançamentos</span></p>
+        
+        <div class="form-group">
+            <label for="lotacao">Lotação (Secretaria):</label>
+            <select id="lotacao" onchange="verificarStatusLotacao()"></select>
+        </div>
+
+        <div class="form-group">
+            <label for="posto">Posto:</label>
+            <select id="posto">
+                <option value="POSBRAL - POSTO BRANDÃO">POSBRAL - POSTO BRANDÃO</option>
+                <option value="AUTO POSTO AS">AUTO POSTO AS</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="combustivel">Tipo de Combustível:</label>
+            <select id="combustivel">
+                <option value="Gasolina Comum">Gasolina Comum</option>
+                <option value="Diesel S10">Diesel S10</option>
+                <option value="Etanol">Etanol</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="litros">Quantidade de Litros:</label>
+            <input type="number" id="litros" step="0.01" min="0" placeholder="0.00">
+        </div>
+
+        <div class="form-group">
+            <label for="data">Data:</label>
+            <input type="date" id="data">
+        </div>
+
+        <input type="hidden" id="editIndex" value="-1">
+
+        <button id="btnSalvar" onclick="salvarAbastecimento()">Adicionar Litros</button>
+        <button id="btnFechar" class="btn-danger" onclick="fecharSecretaria()">Fechar Secretaria</button>
+        <button id="btnAbrir" class="btn-success" onclick="abrirSecretaria()" style="display: none;">Abrir Secretaria</button>
+    </div>
+
+    <div class="card no-print">
+        <h2>Registros Inseridos (Visão do Usuário)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Secretaria</th>
+                    <th>Posto</th>
+                    <th>Combustível</th>
+                    <th>Litros</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaRegistros"></tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <button onclick="window.print()" class="no-print" style="float: right;">Imprimir Relatório (1 Pág)</button>
+        <div class="relatorio-container">
+            <div class="nf-header">
+                <h2>Relatório de Consumo</h2>
+                <span style="font-size: 0.8rem; color: #4a5568;">Consolidado de Abastecimentos</span>
+            </div>
+
+            <div class="nf-meta" id="cabecalhoRelatorio"></div>
+
+            <div class="nf-section-title">1. Consumo por Secretaria e Posto</div>
+            <table class="nf-table">
+                <thead>
+                    <tr>
+                        <th>Secretaria</th>
+                        <th>Posto</th>
+                        <th class="text-center">CNPJ</th>
+                        <th class="text-right">Gasolina (L)</th>
+                        <th class="text-right">Diesel S10 (L)</th>
+                        <th class="text-right">Etanol (L)</th>
+                    </tr>
+                </thead>
+                <tbody id="relatorioSecretarias"></tbody>
+            </table>
+
+            <div style="display: flex; gap: 20px;">
+                <div style="flex: 1;">
+                    <div class="nf-section-title">2. Totais por Combustível</div>
+                    <table class="nf-table">
+                        <thead>
+                            <tr>
+                                <th>Combustível</th>
+                                <th class="text-right">Total (L)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="relatorioCombustivel"></tbody>
+                    </table>
+                </div>
+
+                <div style="flex: 1.3;">
+                    <div class="nf-section-title">3. Detalhamento Diesel S10</div>
+                    <table class="nf-table">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-right">Total (L)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="relatorioDieselEspecial"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="nf-footer">
+                <div><div class="assinatura-linha">Responsável</div></div>
+                <div><div class="assinatura-linha">Gestor / Controle</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FROTA_EDU_NOME = "Sec. Mun. de Educação Diesel S10 - Frota";
+        const postosCadastrados = ["POSBRAL - POSTO BRANDÃO", "AUTO POSTO AS"];
+        
+        const lotacoesData = [
+            { nome: "Sec. Mun. Assistência Social", cnpj: "24.029.768/0001-56" },
+            { nome: "Sec. Mun. de Administração (Prefeitura)", cnpj: "12.334.629/0001-57" },
+            { nome: "Sec. Mun. de Agricultura", cnpj: "12.334.629/0001-57" },
+            { nome: "Sec. Mun. de Assistência Social - CT", cnpj: "24.029.768/0001-56" },
+            { nome: "Sec. Mun. de Educação Diesel S10", cnpj: "31.262.377/0001-42" },
+            { nome: FROTA_EDU_NOME, cnpj: "31.262.377/0001-42" },
+            { nome: "Sec. Mun. de Infraestrutura", cnpj: "12.334.629/0001-57" },
+            { nome: "Sec. Mun. de Saúde", cnpj: "12.334.629/0001-57" }
+        ];
+
+        lotacoesData.sort((a, b) => a.nome.localeCompare(b.nome));
+
+        let registros = [];
+        let secretariasFechadas = {};
+
+        function carregarLotacoes() {
+            const select = document.getElementById("lotacao");
+            select.innerHTML = "";
+            lotacoesData.forEach(item => {
+                const opt = document.createElement("option");
+                opt.value = item.nome;
+                opt.textContent = `${item.nome} (${item.cnpj})`;
+                select.appendChild(opt);
+            });
+            verificarStatusLotacao();
+        }
+
+        function setDates() {
+            document.getElementById('data').value = new Date().toISOString().split('T')[0];
+            document.getElementById('mes').value = new Date().toISOString().slice(0,7);
+        }
+
+        function verificarStatusLotacao() {
+            const lotacaoAtual = document.getElementById("lotacao").value;
+            const btnSalvar = document.getElementById("btnSalvar");
+            const btnFechar = document.getElementById("btnFechar");
+            const btnAbrir = document.getElementById("btnAbrir");
+
+            if (secretariasFechadas[lotacaoAtual]) {
+                btnSalvar.disabled = true;
+                btnFechar.style.display = "none";
+                btnAbrir.style.display = "inline-block";
+                document.getElementById("statusLotacao").textContent = "FECHADA";
+            } else {
+                btnSalvar.disabled = false;
+                btnFechar.style.display = "inline-block";
+                btnAbrir.style.display = "none";
+                document.getElementById("statusLotacao").textContent = "Aberta";
+            }
+        }
+
+        function fecharSecretaria() { secretariasFechadas[document.getElementById("lotacao").value] = true; verificarStatusLotacao(); }
+        function abrirSecretaria() { secretariasFechadas[document.getElementById("lotacao").value] = false; verificarStatusLotacao(); }
+
+        function salvarAbastecimento() {
+            const lotacaoNome = document.getElementById("lotacao").value;
+            const combustivel = document.getElementById("combustivel").value;
+            const posto = document.getElementById("posto").value;
+            const litros = parseFloat(document.getElementById("litros").value);
+            const data = document.getElementById("data").value;
+            const editIndex = parseInt(document.getElementById("editIndex").value);
+
+            if (isNaN(litros) || litros <= 0) { alert("Informe a quantidade de litros."); return; }
+
+            const lotacaoObj = lotacoesData.find(l => l.nome === lotacaoNome);
+            const reg = { lotacao: lotacaoNome, cnpj: lotacaoObj.cnpj, posto: posto, combustivel: combustivel, litros: litros, data: data };
+
+            if (editIndex === -1) registros.push(reg);
+            else { registros[editIndex] = reg; document.getElementById("editIndex").value = "-1"; document.getElementById("btnSalvar").textContent = "Adicionar Litros"; }
+
+            document.getElementById("litros").value = "";
+            atualizarInterface();
+        }
+
+        function editarRegistro(index) {
+            const reg = registros[index];
+            document.getElementById("lotacao").value = reg.lotacao;
+            document.getElementById("posto").value = reg.posto;
+            document.getElementById("combustivel").value = reg.combustivel;
+            document.getElementById("litros").value = reg.litros;
+            document.getElementById("data").value = reg.data;
+            document.getElementById("editIndex").value = index;
+            document.getElementById("btnSalvar").textContent = "Atualizar";
+        }
+
+        function excluirRegistro(index) { if (confirm("Excluir registro?")) { registros.splice(index, 1); atualizarInterface(); } }
+
+        function atualizarTabelaRegistros() {
+            const tbody = document.getElementById("tabelaRegistros");
+            tbody.innerHTML = "";
+            registros.forEach((reg, index) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>${reg.data}</td><td>${reg.lotacao}</td><td>${reg.posto}</td><td>${reg.combustivel}</td><td>${reg.litros.toFixed(2)} L</td><td><button onclick="editarRegistro(${index})">Editar</button><button class="btn-danger" onclick="excluirRegistro(${index})">Excluir</button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function gerarRelatorios() {
+            const mesVal = document.getElementById("mes").value;
+            const quinzenaVal = document.getElementById("quinzena").value;
+            
+            let mesFormatado = "Não especificado";
+            if (mesVal) {
+                const parts = mesVal.split("-");
+                mesFormatado = `${parts[1]}/${parts[0]}`;
+            }
+
+            document.getElementById("cabecalhoRelatorio").innerHTML = `<div><strong>Mês/Ano:</strong> ${mesFormatado}</div><div><strong>Quinzena:</strong> ${quinzenaVal}</div>`;
+
+            // 1. Tabela por Secretaria e Posto
+            const tbodySec = document.getElementById("relatorioSecretarias");
+            tbodySec.innerHTML = "";
+
+            lotacoesData.forEach(lot => {
+                postosCadastrados.forEach(postoName => {
+                    const regs = registros.filter(r => r.lotacao === lot.nome && r.posto === postoName);
+
+                    const gasolina = regs.filter(r => r.combustivel === "Gasolina Comum").reduce((a, b) => a + Number(b.litros), 0);
+                    const diesel = regs.filter(r => r.combustivel === "Diesel S10").reduce((a, b) => a + Number(b.litros), 0);
+                    const etanol = regs.filter(r => r.combustivel === "Etanol").reduce((a, b) => a + Number(b.litros), 0);
+
+                    // Só exibe a linha no relatório se houver pelo menos um consumo registrado no combo (Secretaria + Posto)
+                    if (gasolina > 0 || diesel > 0 || etanol > 0) {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                            <td>${lot.nome}</td>
+                            <td>${postoName}</td>
+                            <td class="text-center">${lot.cnpj}</td>
+                            <td class="text-right">${gasolina > 0 ? gasolina.toFixed(2) : '-'}</td>
+                            <td class="text-right">${diesel > 0 ? diesel.toFixed(2) : '-'}</td>
+                            <td class="text-right">${etanol > 0 ? etanol.toFixed(2) : '-'}</td>
+                        `;
+                        tbodySec.appendChild(tr);
+                    }
+                });
+            });
+
+            // 2. Totais por Combustível
+            const tbodyComb = document.getElementById("relatorioCombustivel");
+            tbodyComb.innerHTML = "";
+            ["Gasolina Comum", "Diesel S10", "Etanol"].forEach(tipo => {
+                const total = registros.filter(r => r.combustivel === tipo).reduce((a, b) => a + Number(b.litros), 0);
+                tbodyComb.innerHTML += `<tr><td>${tipo}</td><td class="text-right"><strong>${total.toFixed(2)} L</strong></td></tr>`;
+            });
+
+            // 3. Detalhamento Diesel S10
+            const tbodyDiesel = document.getElementById("relatorioDieselEspecial");
+            tbodyDiesel.innerHTML = "";
+            const regsD = registros.filter(r => r.combustivel === "Diesel S10");
+            const dFrota = regsD.filter(r => r.lotacao === FROTA_EDU_NOME).reduce((a, b) => a + Number(b.litros), 0);
+            const dDemais = regsD.filter(r => r.lotacao !== FROTA_EDU_NOME).reduce((a, b) => a + Number(b.litros), 0);
+            tbodyDiesel.innerHTML += `<tr><td>Educação - Frota</td><td class="text-right"><strong>${dFrota.toFixed(2)} L</strong></td></tr>`;
+            tbodyDiesel.innerHTML += `<tr><td>Demais Secretarias (Exceto Frota)</td><td class="text-right"><strong>${dDemais.toFixed(2)} L</strong></td></tr>`;
+        }
+
+        function atualizarInterface() { verificarStatusLotacao(); atualizarTabelaRegistros(); gerarRelatorios(); }
+        window.onload = function() { carregarLotacoes(); setDates(); atualizarInterface(); };
+    </script>
+</body>
+</html>
