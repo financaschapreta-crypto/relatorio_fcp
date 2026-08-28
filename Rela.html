@@ -27,12 +27,18 @@
         textarea { resize: vertical; height: 40px; }
 
         .btn-add { width: 100%; background: var(--success); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-clear-form { width: 100%; background: #95a5a6; color: white; border: none; padding: 6px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         .btn-print { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .btn-excel { width: 100%; background: #217346; color: white; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         .btn-hist { width: 100%; background: var(--gray); color: white; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         .btn-save-rel { width: 100%; background: var(--accent); color: white; border: none; padding: 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         
         .backup-group { display: flex; gap: 5px; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .btn-backup { flex: 1; font-size: 0.7rem; padding: 5px; cursor: pointer; background: #f8f9fa; border: 1px solid #ccc; border-radius: 3px; }
+
+        /* Campo de Busca Rápida */
+        .busca-container { margin-top: 12px; margin-bottom: 8px; padding-top: 10px; border-top: 1px solid #eee; }
+        .busca-container input { background-color: #fffde7; border: 1px solid #fbc02d; font-weight: 600; }
 
         /* Modal */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
@@ -59,6 +65,9 @@
         td { border: 1px solid #ddd; padding: 2px 5px; vertical-align: middle; }
         tr:nth-child(even) { background-color: #fafafa; }
         
+        .row-grupo-lotacao { background-color: #e9ecef !important; font-weight: bold; color: var(--primary); }
+        .row-grupo-lotacao td { padding: 5px; border-top: 2px solid #b0bec5; font-size: 0.78rem; text-transform: uppercase; }
+
         .col-valor { text-align: right; font-family: 'Courier New', monospace; font-weight: bold; width: 80px; }
         .col-acoes { width: 50px; text-align: center; }
         
@@ -142,8 +151,16 @@
             </select>
         </div>
 
-        <button class="btn-add" id="btnSalvar" onclick="salvarItem()">Adicionar Item</button>
+        <!-- Campo de Pesquisa em Tempo Real -->
+        <div class="form-group busca-container">
+            <label>🔍 Pesquisar Credor Inserido</label>
+            <input type="text" id="busca_credor" placeholder="Digite para filtrar credores..." oninput="atualizarRelatorio()">
+        </div>
+
+        <button class="btn-add" id="btnSalvar" onclick="salvarItem()">Adicionar Item (Enter)</button>
+        <button class="btn-clear-form" onclick="limparFormulario()">Limpar Formulário</button>
         <button class="btn-save-rel" onclick="salvarNoHistorico()">Finalizar e Salvar Relatório</button>
+        <button class="btn-excel" onclick="exportarExcel()">Exportar para Excel (CSV)</button>
         <button class="btn-hist" onclick="abrirModal()">Ver Histórico (Período)</button>
         <button class="btn-print" onclick="window.print()">Imprimir PDF</button>
 
@@ -176,7 +193,7 @@
             <tbody id="tabela-corpo"></tbody>
             <tfoot>
                 <tr style="background: #f2f2f2; font-size: 0.8rem;">
-                    <td colspan="5" style="text-align:right"><strong>TOTAL GERAL:</strong></td>
+                    <td colspan="5" style="text-align:right"><strong id="label-total-geral">TOTAL GERAL:</strong></td>
                     <td class="col-valor" id="total-geral">R$ 0,00</td>
                     <td class="no-print"></td>
                 </tr>
@@ -228,32 +245,52 @@
     }
 
     function salvarItem() {
-        const credor = document.getElementById('credor').value;
+        const credor = document.getElementById('credor').value.trim();
         const valor = parseFloat(document.getElementById('valor').value);
         const obs = document.getElementById('obs_item').value;
         let lotacao = document.getElementById('lotacao').value;
-        if(lotacao === "OUTRO") lotacao = document.getElementById('inputLotacao').value;
+        if(lotacao === "OUTRO") lotacao = document.getElementById('inputLotacao').value.trim();
         let recurso = document.getElementById('recurso').value;
-        if(recurso === "OUTRO") recurso = document.getElementById('inputRecurso').value;
+        if(recurso === "OUTRO") recurso = document.getElementById('inputRecurso').value.trim();
 
         if(!credor || isNaN(valor)) return alert("Preencha Credor e Valor!");
+
+        // Validação Inteligente de Duplicidade (Alerta Informativo com opção de prosseguir)
+        if(editIndex === null) {
+            const jaExiste = dados.filter(i => i.credor.toLowerCase() === credor.toLowerCase() && i.lotacao.toLowerCase() === lotacao.toLowerCase());
+            if(jaExiste.length > 0) {
+                const confirma = confirm(`ATENÇÃO: Já existe(m) ${jaExiste.length} registro(s) cadastrado(s) para "${credor}" na lotação "${lotacao}".\n\nDeseja adicionar este novo lançamento mesmo assim?`);
+                if(!confirma) return;
+            }
+        }
 
         const item = { credor, lotacao, recurso, valor, obs };
 
         if(editIndex !== null) {
             dados[editIndex] = item;
             editIndex = null;
-            document.getElementById('btnSalvar').innerText = "Adicionar Item";
+            document.getElementById('btnSalvar').innerText = "Adicionar Item (Enter)";
             document.getElementById('btnSalvar').style.background = "var(--success)";
         } else {
             dados.push(item);
         }
 
+        limparFormulario();
+        atualizarRelatorio();
+    }
+
+    function limparFormulario() {
         document.getElementById('credor').value = "";
         document.getElementById('valor').value = "";
         document.getElementById('obs_item').value = "";
+        document.getElementById('inputLotacao').value = "";
+        document.getElementById('inputRecurso').value = "";
         document.getElementById('credor').focus();
-        atualizarRelatorio();
+        if(editIndex !== null) {
+            editIndex = null;
+            document.getElementById('btnSalvar').innerText = "Adicionar Item (Enter)";
+            document.getElementById('btnSalvar').style.background = "var(--success)";
+        }
     }
 
     function editarItem(index) {
@@ -262,7 +299,7 @@
         document.getElementById('valor').value = item.valor;
         document.getElementById('obs_item').value = item.obs;
         editIndex = index;
-        document.getElementById('btnSalvar').innerText = "Confirmar Edição";
+        document.getElementById('btnSalvar').innerText = "Confirmar Edição (Enter)";
         document.getElementById('btnSalvar').style.background = "var(--warning)";
     }
 
@@ -279,13 +316,27 @@
         document.getElementById('display-data').innerText = new Date().toLocaleDateString('pt-BR');
         document.getElementById('display-relator').innerText = document.getElementById('responsavel').value;
 
+        // 1. Organização automática por Lotação (e em seguida por Credor)
+        dados.sort((a, b) => {
+            const lotA = a.lotacao.toLowerCase();
+            const lotB = b.lotacao.toLowerCase();
+            if (lotA < lotB) return -1;
+            if (lotA > lotB) return 1;
+            return a.credor.toLowerCase().localeCompare(b.credor.toLowerCase());
+        });
+
         const corpo = document.getElementById('tabela-corpo');
         corpo.innerHTML = "";
         
         let total = 0;
+        let totalFiltrado = 0;
         let lotacoes = {};
         let recursos = {};
         let combos = {};
+        let lotacaoAtual = "";
+
+        // 2. Filtro de pesquisa rápida
+        const termoBusca = (document.getElementById('busca_credor') ? document.getElementById('busca_credor').value : "").toLowerCase().trim();
 
         dados.forEach((item, i) => {
             total += item.valor;
@@ -294,22 +345,49 @@
             let cKey = `${item.lotacao} + ${item.recurso}`;
             combos[cKey] = (combos[cKey] || 0) + item.valor;
 
-            corpo.innerHTML += `
-                <tr>
-                    <td style="color:#888">${i+1}</td>
-                    <td><strong>${item.credor}</strong></td>
-                    <td>${item.lotacao}</td>
-                    <td>${item.recurso}</td>
-                    <td style="font-style: italic; color: #555;">${item.obs || '-'}</td>
-                    <td class="col-valor">${item.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
-                    <td class="col-acoes no-print">
-                        <span style="cursor:pointer; color:blue;" onclick="editarItem(${i})">✎</span>
-                        <span style="cursor:pointer; color:red; margin-left:5px;" onclick="excluirItem(${i})">✖</span>
-                    </td>
-                </tr>`;
+            const combinaComBusca = item.credor.toLowerCase().includes(termoBusca) || 
+                                    item.lotacao.toLowerCase().includes(termoBusca) ||
+                                    (item.obs && item.obs.toLowerCase().includes(termoBusca));
+
+            if (!termoBusca || combinaComBusca) {
+                totalFiltrado += item.valor;
+
+                // Agrupamento Visual por Lotação (Linha Cabeçalho de Grupo)
+                if (!termoBusca && item.lotacao !== lotacaoAtual) {
+                    lotacaoAtual = item.lotacao;
+                    corpo.innerHTML += `
+                        <tr class="row-grupo-lotacao">
+                            <td colspan="7">📁 ${lotacaoAtual.toUpperCase()}</td>
+                        </tr>
+                    `;
+                }
+
+                const destaque = termoBusca && item.credor.toLowerCase().includes(termoBusca) ? 'style="background-color: #fff9c4;"' : '';
+
+                corpo.innerHTML += `
+                    <tr ${destaque}>
+                        <td style="color:#888">${i+1}</td>
+                        <td><strong>${item.credor}</strong></td>
+                        <td>${item.lotacao}</td>
+                        <td>${item.recurso}</td>
+                        <td style="font-style: italic; color: #555;">${item.obs || '-'}</td>
+                        <td class="col-valor">${item.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                        <td class="col-acoes no-print">
+                            <span style="cursor:pointer; color:blue;" onclick="editarItem(${i})">✎</span>
+                            <span style="cursor:pointer; color:red; margin-left:5px;" onclick="excluirItem(${i})">✖</span>
+                        </td>
+                    </tr>`;
+            }
         });
 
-        document.getElementById('total-geral').innerText = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+        if(termoBusca) {
+            document.getElementById('label-total-geral').innerText = "TOTAL FILTRADO:";
+            document.getElementById('total-geral').innerText = `R$ ${totalFiltrado.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+        } else {
+            document.getElementById('label-total-geral').innerText = "TOTAL GERAL:";
+            document.getElementById('total-geral').innerText = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+        }
+
         let htmlR = renderCard("Por Lotação", lotacoes);
         htmlR += renderCard("Por Recurso", recursos);
         htmlR += renderCard("Lotação + Recurso", combos);
@@ -324,6 +402,28 @@
         return h + `</div>`;
     }
 
+    // Exportação para Excel em formato CSV
+    function exportarExcel() {
+        if (dados.length === 0) return alert("Não há dados para exportar!");
+
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+        csvContent += "Item;Credor;Lotacao;Recurso;Observacao;Valor\n";
+
+        dados.forEach((item, index) => {
+            const obsClean = (item.obs || "").replace(/;/g, ",").replace(/\n/g, " ");
+            const valorFmt = item.valor.toFixed(2).replace(".", ",");
+            csvContent += `${index + 1};${item.credor};${item.lotacao};${item.recurso};${obsClean};${valorFmt}\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `relatorio_financeiro_${relId}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
     // --- SISTEMA DE HISTÓRICO E BACKUP ---
 
     function salvarNoHistorico() {
@@ -331,7 +431,6 @@
         
         const historico = JSON.parse(localStorage.getItem('financas_cha_preta') || '[]');
         
-        // Salvamos o timestamp para facilitar a busca por período depois
         const novoRelatorio = {
             id: relId,
             timestamp: new Date().getTime(),
@@ -347,6 +446,7 @@
         alert("Relatório salvo no histórico!");
         dados = [];
         relId = `${new Date().getFullYear()}${Math.floor(1000 + Math.random() * 9000)}`;
+        if (document.getElementById('busca_credor')) document.getElementById('busca_credor').value = "";
         atualizarRelatorio();
     }
 
@@ -364,11 +464,9 @@
         const container = document.getElementById('lista-historico');
         container.innerHTML = historico.length ? "" : "<p style='padding:20px; text-align:center;'>Nenhum relatório encontrado para este período.</p>";
 
-        // Inverte para mostrar os mais recentes primeiro
         const listaParaExibir = dadosFiltrados ? historico : [...historico].reverse();
 
         listaParaExibir.forEach((rel, index) => {
-            // Se for filtrado, precisamos achar o index original para ações de carregar/excluir
             const historicoOriginal = JSON.parse(localStorage.getItem('financas_cha_preta') || '[]');
             const indexOriginal = historicoOriginal.findIndex(item => item.id === rel.id && item.timestamp === rel.timestamp);
 
@@ -393,7 +491,6 @@
 
         if(!strInicio || !strFim) return alert("Selecione as duas datas para o período!");
 
-        // Ajustar datas para início e fim do dia
         const dInicio = new Date(strInicio + 'T00:00:00').getTime();
         const dFim = new Date(strFim + 'T23:59:59').getTime();
 
@@ -419,6 +516,7 @@
             dados = selecionado.itens;
             relId = selecionado.id;
             document.getElementById('responsavel').value = selecionado.relator;
+            if (document.getElementById('busca_credor')) document.getElementById('busca_credor').value = "";
             atualizarRelatorio();
             fecharModal();
         }
@@ -466,6 +564,16 @@
         };
         reader.readAsText(file);
     }
+
+    // Atalhos de Teclado (Enter para Adicionar)
+    document.querySelectorAll('.panel input, .panel textarea').forEach(element => {
+        element.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                salvarItem();
+            }
+        });
+    });
 
     // Inicialização
     atualizarRelatorio();
