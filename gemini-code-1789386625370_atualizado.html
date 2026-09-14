@@ -172,7 +172,7 @@
       <button onclick="closeModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
 
       <h3 class="text-lg font-bold text-indigo-900 mb-2">Simulação Reversa (Meta Líquida)</h3>
-      <p class="text-xs text-slate-500 mb-4">Informe o valor **líquido** que deseja receber e o sistema calculará o valor **bruto** necessário.</p>
+      <p class="text-xs text-slate-500 mb-4">Informe o valor **líquido** que deseja receber e selecione os impostos a aplicar.</p>
 
       <div class="space-y-4">
         <div>
@@ -180,16 +180,39 @@
           <input type="number" step="0.01" id="metaLiquida" class="w-full border rounded p-2 text-sm font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="100.00">
         </div>
 
+        <!-- Opções de Impostos do Modal Reverso -->
+        <div class="bg-slate-50 p-3 rounded-lg border text-xs space-y-2">
+          <label class="block font-semibold uppercase text-slate-600">Impostos a incluir no cálculo:</label>
+          <div class="flex flex-wrap gap-4">
+            <label class="inline-flex items-center">
+              <input type="checkbox" id="revChkISS" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span class="ml-1.5">ISS (5%)</span>
+            </label>
+            <label class="inline-flex items-center">
+              <input type="checkbox" id="revChkINSS" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span class="ml-1.5">INSS (11%)</span>
+            </label>
+            <label class="inline-flex items-center">
+              <input type="checkbox" id="revChkIRRF" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span class="ml-1.5">IRRF (2026)</span>
+            </label>
+          </div>
+        </div>
+
         <button onclick="calcularReverso()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded shadow transition text-sm">
           Calcular Valor Bruto Correspondente
         </button>
 
         <div id="resultadoReverso" class="hidden bg-slate-50 border p-4 rounded-lg text-xs space-y-2">
-          <div class="flex justify-between font-bold text-sm text-slate-800">
-            <span>Valor Bruto Estimado:</span>
+          <div class="flex justify-between font-bold text-xs text-slate-800">
+            <span>Valor Bruto Estimado (Exato):</span>
             <span id="revBruto" class="text-indigo-600">R$ 0,00</span>
           </div>
-          <div class="flex justify-between">
+          <div class="flex justify-between font-bold text-xs text-amber-700 bg-amber-50 p-1.5 rounded border border-amber-200">
+            <span>Valor Bruto Estimado (Arredondado):</span>
+            <span id="revBrutoArredondado" class="font-extrabold">R$ 0,00</span>
+          </div>
+          <div class="flex justify-between pt-1">
             <span>ISS Estimado:</span>
             <span id="revISS">R$ 0,00</span>
           </div>
@@ -202,13 +225,18 @@
             <span id="revIRRF">R$ 0,00</span>
           </div>
           <div class="flex justify-between border-t pt-1 font-bold text-emerald-700">
-            <span>Líquido Resultante:</span>
+            <span>Líquido Resultante (Exato):</span>
             <span id="revLiquido">R$ 0,00</span>
           </div>
 
-          <button onclick="aplicarReversoAoFormulario()" class="w-full mt-3 bg-indigo-900 text-white py-1.5 rounded hover:bg-indigo-800 transition font-semibold">
-            Aplicar no Formulário e Gerar
-          </button>
+          <div class="grid grid-cols-2 gap-2 pt-2">
+            <button onclick="aplicarReversoAoFormulario(false)" class="w-full bg-indigo-900 text-white py-1.5 rounded hover:bg-indigo-800 transition font-semibold text-xs">
+              Aplicar Exato
+            </button>
+            <button onclick="aplicarReversoAoFormulario(true)" class="w-full bg-amber-600 text-white py-1.5 rounded hover:bg-amber-700 transition font-semibold text-xs">
+              Aplicar Arredondado
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -253,8 +281,7 @@
       return `${dia}/${mes}/${ano}`;
     }
 
-    // Atualização automática APENAS dos valores ao digitar o Valor Bruto.
-    // Não preenche/altera as demais informações do demonstrativo.
+    // Atualização automática dos valores ao digitar o Valor Bruto ou alterar os impostos.
     function atualizarValoresAutomaticamente() {
       const valorBruto = parseFloat(document.getElementById('valorBruto').value) || 0;
 
@@ -280,8 +307,11 @@
       document.getElementById('previewLiquido').textContent = fmtR$(valorLiquido);
     }
 
-    // Apenas o Valor Bruto dispara a atualização automática dos valores.
+    // O Valor Bruto e os checkboxes dos impostos disparam a atualização automática dos valores.
     document.getElementById('valorBruto').addEventListener('input', atualizarValoresAutomaticamente);
+    document.getElementById('chkISS').addEventListener('change', atualizarValoresAutomaticamente);
+    document.getElementById('chkINSS').addEventListener('change', atualizarValoresAutomaticamente);
+    document.getElementById('chkIRRF').addEventListener('change', atualizarValoresAutomaticamente);
 
     // Máscara CPF/CNPJ
     const inputDoc = document.getElementById('doc');
@@ -343,25 +373,43 @@
       document.getElementById('previewLiquido').textContent = fmtR$(valorLiquido);
     }
 
-    // Modal Control
+    // Modal Control & Sincronização de Impostos
     function openModal() {
+      // Sincroniza o modal com as checkboxes marcadas no formulário principal
+      document.getElementById('revChkISS').checked = document.getElementById('chkISS').checked;
+      document.getElementById('revChkINSS').checked = document.getElementById('chkINSS').checked;
+      document.getElementById('revChkIRRF').checked = document.getElementById('chkIRRF').checked;
+
       document.getElementById('modalReverso').classList.remove('hidden');
       document.getElementById('modalReverso').classList.add('flex');
     }
+
     function closeModal() {
       document.getElementById('modalReverso').classList.add('hidden');
       document.getElementById('modalReverso').classList.remove('flex');
     }
 
+    // Recálculo automático dentro do modal caso altere o status de uma checkbox
+    ['revChkISS', 'revChkINSS', 'revChkIRRF'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => {
+        if (!document.getElementById('resultadoReverso').classList.contains('hidden')) {
+          calcularReverso();
+        }
+      });
+    });
+
     // Cálculo Reverso
     let ultimoBrutoCalculado = 0;
+    let ultimoBrutoArredondado = 0;
+
     function calcularReverso() {
       const meta = parseFloat(document.getElementById('metaLiquida').value) || 0;
       if (meta <= 0) return;
 
-      const chkISS = document.getElementById('chkISS').checked;
-      const chkINSS = document.getElementById('chkINSS').checked;
-      const chkIRRF = document.getElementById('chkIRRF').checked;
+      // Pega a seleção de impostos diretamente das caixas do modal
+      const chkISS = document.getElementById('revChkISS').checked;
+      const chkINSS = document.getElementById('revChkINSS').checked;
+      const chkIRRF = document.getElementById('revChkIRRF').checked;
 
       let min = meta;
       let max = meta * 3;
@@ -388,6 +436,8 @@
       }
 
       ultimoBrutoCalculado = brutoChute;
+      // Arredonda para cima para eliminar os centavos
+      ultimoBrutoArredondado = Math.ceil(brutoChute);
 
       const iss = chkISS ? brutoChute * 0.05 : 0;
       const inss = chkINSS ? brutoChute * 0.11 : 0;
@@ -395,6 +445,7 @@
       const irrf = chkIRRF ? Math.max(0, calcularIRRF2026(baseIRRF)) : 0;
 
       document.getElementById('revBruto').textContent = fmtR$(brutoChute);
+      document.getElementById('revBrutoArredondado').textContent = fmtR$(ultimoBrutoArredondado);
       document.getElementById('revISS').textContent = fmtR$(iss);
       document.getElementById('revINSS').textContent = fmtR$(inss);
       document.getElementById('revIRRF').textContent = fmtR$(irrf);
@@ -403,8 +454,15 @@
       document.getElementById('resultadoReverso').classList.remove('hidden');
     }
 
-    function aplicarReversoAoFormulario() {
-      document.getElementById('valorBruto').value = ultimoBrutoCalculado.toFixed(2);
+    function aplicarReversoAoFormulario(usarArredondado = false) {
+      const valor = usarArredondado ? ultimoBrutoArredondado : ultimoBrutoCalculado;
+      document.getElementById('valorBruto').value = valor.toFixed(2);
+      
+      // Transfere as opções de impostos selecionadas no modal para o formulário principal
+      document.getElementById('chkISS').checked = document.getElementById('revChkISS').checked;
+      document.getElementById('chkINSS').checked = document.getElementById('revChkINSS').checked;
+      document.getElementById('chkIRRF').checked = document.getElementById('revChkIRRF').checked;
+
       gerarDemonstrativo();
       closeModal();
     }
