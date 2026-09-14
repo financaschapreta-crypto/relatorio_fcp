@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Nota de Serviço 2026</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- html2canvas para conversão em imagem -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans">
+
+  <!-- Header -->
+  <header class="bg-indigo-900 text-white p-4 shadow-md flex justify-between items-center">
+    <div>
+      <h1 class="text-xl font-bold">Simulador de Nota de Serviço</h1>
+      <p class="text-xs text-indigo-200">Cálculos tributários com Regra de Isenção IRRF 2026 (Até R$ 5.000,00)</p>
+    </div>
+    <button onclick="openModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-4 py-2 rounded-lg shadow transition duration-200 text-sm">
+      🧮 Simulação Reversa (Meta Líquida)
+    </button>
+  </header>
+
+  <!-- Split Screen Main Layout -->
+  <main class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 max-w-7xl mx-auto">
+
+    <!-- LADO ESQUERDO: Formulário de Entrada -->
+    <section class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+      <h2 class="text-lg font-bold mb-4 text-indigo-900 border-b pb-2">Dados da Prestação de Serviço</h2>
+
+      <form id="simularForm" class="space-y-4" onsubmit="event.preventDefault();">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Credor / Nome Razão Social</label>
+          <input type="text" id="credor" class="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ex: João da Silva">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">CPF ou CNPJ</label>
+            <input type="text" id="doc" maxlength="18" class="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="000.000.000-00">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Data de Nascimento</label>
+            <input type="date" id="dataNasc" class="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Lotação / Setor</label>
+            <input type="text" id="lotacao" class="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ex: Secretaria de Finanças">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Data do Demonstrativo</label>
+            <input type="date" id="dataEmissao" class="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Descrição do Serviço</label>
+          <input type="text" id="servico" class="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ex: Manutenção Preventiva de Computadores">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">CBO (Selecione ou Digite)</label>
+          <input type="text" id="cbo" list="cbosList" class="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Ex: 3171-10 - Programador de Sistemas">
+          <datalist id="cbosList">
+            <option value="2521-05 - Administrador">
+            <option value="2522-10 - Contador">
+            <option value="3171-10 - Programador de Sistemas">
+            <option value="3511-05 - Técnico em Administração">
+            <option value="5143-20 - Auxiliar de Serviços Gerais">
+            <option value="5173-30 - Porteiro / Vigia">
+            <option value="2410-05 - Advogado">
+          </datalist>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Valor Bruto (R$)</label>
+          <input type="number" step="0.01" id="valorBruto" class="w-full border rounded p-2 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="0.00">
+        </div>
+
+        <!-- Opções de Incidência de Impostos -->
+        <div class="border-t pt-3">
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-2">Impostos Incidentes a Deduzir</label>
+          <div class="flex gap-6">
+            <label class="inline-flex items-center text-sm">
+              <input type="checkbox" id="chkISS" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span class="ml-2">ISS (5%)</span>
+            </label>
+            <label class="inline-flex items-center text-sm">
+              <input type="checkbox" id="chkINSS" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span class="ml-2">INSS (11%)</span>
+            </label>
+            <label class="inline-flex items-center text-sm">
+              <input type="checkbox" id="chkIRRF" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+              <span class="ml-2">IRRF (Regra 2026 - Até R$ 5k Isento)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- BOTÃO PARA CALCULAR / GERAR O DEMONSTRATIVO -->
+        <div class="border-t pt-4">
+          <button onclick="gerarDemonstrativo()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow transition duration-200 text-base flex justify-center items-center gap-2">
+            📄 Gerar Demonstrativo
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- LADO DIREITO: Demonstrativo (Aparece após clicar no botão) -->
+    <section class="flex flex-col gap-4">
+      <div id="demonstrativoCard" class="bg-white p-6 rounded-xl shadow-md border border-slate-200 text-slate-800">
+        <div class="border-b-2 border-indigo-900 pb-3 mb-4 flex justify-between items-start">
+          <div>
+            <h3 class="text-xl font-bold text-indigo-900 uppercase">Demonstrativo de Serviço</h3>
+            <p class="text-xs text-slate-500">Simulação do Recibo de Pagamento de Autônomo / Nota</p>
+          </div>
+          <span id="previewData" class="text-xs bg-indigo-50 text-indigo-800 font-semibold px-2 py-1 rounded">--/--/----</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-y-3 text-sm mb-6">
+          <div><span class="text-xs font-semibold uppercase text-slate-400 block">Credor</span><strong id="previewCredor">---</strong></div>
+          <div><span class="text-xs font-semibold uppercase text-slate-400 block" id="previewDocLabel">CPF/CNPJ</span><strong id="previewDoc">---</strong></div>
+          <div><span class="text-xs font-semibold uppercase text-slate-400 block">Nascimento</span><span id="previewNasc">---</span></div>
+          <div><span class="text-xs font-semibold uppercase text-slate-400 block">Lotação</span><span id="previewLotacao">---</span></div>
+          <div class="col-span-2"><span class="text-xs font-semibold uppercase text-slate-400 block">Serviço</span><span id="previewServico">---</span></div>
+          <div class="col-span-2"><span class="text-xs font-semibold uppercase text-slate-400 block">CBO</span><span id="previewCBO">---</span></div>
+        </div>
+
+        <!-- Tabela de Valores e Impostos -->
+        <div class="bg-slate-50 rounded-lg p-4 border border-slate-100 space-y-2 mb-4">
+          <div class="flex justify-between items-center text-sm">
+            <span>Valor Bruto:</span>
+            <span class="font-semibold text-slate-800" id="previewBruto">R$ 0,00</span>
+          </div>
+          
+          <div class="border-t pt-2 space-y-1 text-xs text-slate-600">
+            <div class="flex justify-between">
+              <span>(-) ISS (5%):</span>
+              <span id="previewISS">R$ 0,00</span>
+            </div>
+            <div class="flex justify-between">
+              <span>(-) INSS (11%):</span>
+              <span id="previewINSS">R$ 0,00</span>
+            </div>
+            <div class="flex justify-between">
+              <span>(-) IRRF (Isenção 2026 até R$ 5.000,00):</span>
+              <span id="previewIRRF">R$ 0,00</span>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-300 pt-2 flex justify-between items-center text-base font-bold text-emerald-700">
+            <span>Valor Líquido a Receber:</span>
+            <span id="previewLiquido">R$ 0,00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botão para Baixar Imagem (Opcional) -->
+      <button id="btnBaixarImg" onclick="gerarImagem()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow transition duration-200 flex justify-center items-center gap-2">
+        📷 Baixar Demonstrativo como Imagem
+      </button>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Calculadora de Meta Líquida (Reverso) -->
+  <div id="modalReverso" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 backdrop-blur-sm z-50">
+    <div class="bg-white max-w-md w-full rounded-xl shadow-2xl p-6 relative">
+      <button onclick="closeModal()" class="absolute top-3 right-3 text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+
+      <h3 class="text-lg font-bold text-indigo-900 mb-2">Simulação Reversa (Meta Líquida)</h3>
+      <p class="text-xs text-slate-500 mb-4">Informe o valor **líquido** que deseja receber e o sistema calculará o valor **bruto** necessário.</p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Valor Líquido Desejado (R$)</label>
+          <input type="number" step="0.01" id="metaLiquida" class="w-full border rounded p-2 text-sm font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="100.00">
+        </div>
+
+        <button onclick="calcularReverso()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded shadow transition text-sm">
+          Calcular Valor Bruto Correspondente
+        </button>
+
+        <div id="resultadoReverso" class="hidden bg-slate-50 border p-4 rounded-lg text-xs space-y-2">
+          <div class="flex justify-between font-bold text-sm text-slate-800">
+            <span>Valor Bruto Estimado:</span>
+            <span id="revBruto" class="text-indigo-600">R$ 0,00</span>
+          </div>
+          <div class="flex justify-between">
+            <span>ISS Estimado:</span>
+            <span id="revISS">R$ 0,00</span>
+          </div>
+          <div class="flex justify-between">
+            <span>INSS Estimado:</span>
+            <span id="revINSS">R$ 0,00</span>
+          </div>
+          <div class="flex justify-between">
+            <span>IRRF Estimado:</span>
+            <span id="revIRRF">R$ 0,00</span>
+          </div>
+          <div class="flex justify-between border-t pt-1 font-bold text-emerald-700">
+            <span>Líquido Resultante:</span>
+            <span id="revLiquido">R$ 0,00</span>
+          </div>
+
+          <button onclick="aplicarReversoAoFormulario()" class="w-full mt-3 bg-indigo-900 text-white py-1.5 rounded hover:bg-indigo-800 transition font-semibold">
+            Aplicar no Formulário e Gerar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT JS LÓGICA -->
+  <script>
+    document.getElementById('dataEmissao').valueAsDate = new Date();
+
+    // REGRA ATUALIZADA DO IRRF 2026 COM ISENÇÃO ATÉ R$ 5.000,00
+    function calcularIRRF2026(baseCalculo) {
+      if (baseCalculo <= 5000.00) {
+        return 0;
+      }
+
+      let impostoBruto = 0;
+      if (baseCalculo <= 2259.20) {
+        impostoBruto = 0;
+      } else if (baseCalculo <= 2826.65) {
+        impostoBruto = (baseCalculo * 0.075) - 169.44;
+      } else if (baseCalculo <= 3751.05) {
+        impostoBruto = (baseCalculo * 0.15) - 381.44;
+      } else if (baseCalculo <= 4664.68) {
+        impostoBruto = (baseCalculo * 0.225) - 662.77;
+      } else {
+        impostoBruto = (baseCalculo * 0.275) - 896.00;
+      }
+
+      if (baseCalculo <= 7350.00) {
+        const fatorReducao = Math.max(0, 312.89 * ((7350.00 - baseCalculo) / (7350.00 - 5000.00)));
+        impostoBruto = Math.max(0, impostoBruto - fatorReducao);
+      }
+
+      return Math.max(0, impostoBruto);
+    }
+
+    const fmtR$ = val => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+
+    function fmtData(strData) {
+      if (!strData) return '--/--/----';
+      const [ano, mes, dia] = strData.split('-');
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    // Atualização automática APENAS dos valores ao digitar o Valor Bruto.
+    // Não preenche/altera as demais informações do demonstrativo.
+    function atualizarValoresAutomaticamente() {
+      const valorBruto = parseFloat(document.getElementById('valorBruto').value) || 0;
+
+      const chkISS = document.getElementById('chkISS').checked;
+      const chkINSS = document.getElementById('chkINSS').checked;
+      const chkIRRF = document.getElementById('chkIRRF').checked;
+
+      const iss = chkISS ? valorBruto * 0.05 : 0;
+      const inss = chkINSS ? valorBruto * 0.11 : 0;
+
+      let irrf = 0;
+      if (chkIRRF) {
+        const baseIRRF = Math.max(0, valorBruto - inss);
+        irrf = Math.max(0, calcularIRRF2026(baseIRRF));
+      }
+
+      const valorLiquido = valorBruto - (iss + inss + irrf);
+
+      document.getElementById('previewBruto').textContent = fmtR$(valorBruto);
+      document.getElementById('previewISS').textContent = fmtR$(iss);
+      document.getElementById('previewINSS').textContent = fmtR$(inss);
+      document.getElementById('previewIRRF').textContent = fmtR$(irrf);
+      document.getElementById('previewLiquido').textContent = fmtR$(valorLiquido);
+    }
+
+    // Apenas o Valor Bruto dispara a atualização automática dos valores.
+    document.getElementById('valorBruto').addEventListener('input', atualizarValoresAutomaticamente);
+
+    // Máscara CPF/CNPJ
+    const inputDoc = document.getElementById('doc');
+    inputDoc.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\D/g, '');
+      if (v.length <= 11) {
+        v = v.replace(/(\d{3})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        document.getElementById('previewDocLabel').textContent = 'CPF';
+      } else {
+        v = v.substring(0, 14);
+        v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+        v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+        v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+        v = v.replace(/(\d{4})(\d)/, '$1-$2');
+        document.getElementById('previewDocLabel').textContent = 'CNPJ';
+      }
+      e.target.value = v;
+    });
+
+    function gerarDemonstrativo() {
+      const credor = document.getElementById('credor').value || '---';
+      const doc = document.getElementById('doc').value || '---';
+      const dataNasc = document.getElementById('dataNasc').value;
+      const lotacao = document.getElementById('lotacao').value || '---';
+      const dataEmissao = document.getElementById('dataEmissao').value;
+      const servico = document.getElementById('servico').value || '---';
+      const cbo = document.getElementById('cbo').value || '---';
+      const valorBruto = parseFloat(document.getElementById('valorBruto').value) || 0;
+
+      const chkISS = document.getElementById('chkISS').checked;
+      const chkINSS = document.getElementById('chkINSS').checked;
+      const chkIRRF = document.getElementById('chkIRRF').checked;
+
+      const iss = chkISS ? valorBruto * 0.05 : 0;
+      const inss = chkINSS ? valorBruto * 0.11 : 0;
+      
+      let irrf = 0;
+      if (chkIRRF) {
+        const baseIRRF = Math.max(0, valorBruto - inss);
+        irrf = Math.max(0, calcularIRRF2026(baseIRRF));
+      }
+
+      const valorLiquido = valorBruto - (iss + inss + irrf);
+
+      document.getElementById('previewCredor').textContent = credor;
+      document.getElementById('previewDoc').textContent = doc;
+      document.getElementById('previewNasc').textContent = fmtData(dataNasc);
+      document.getElementById('previewLotacao').textContent = lotacao;
+      document.getElementById('previewData').textContent = fmtData(dataEmissao);
+      document.getElementById('previewServico').textContent = servico;
+      document.getElementById('previewCBO').textContent = cbo;
+
+      document.getElementById('previewBruto').textContent = fmtR$(valorBruto);
+      document.getElementById('previewISS').textContent = fmtR$(iss);
+      document.getElementById('previewINSS').textContent = fmtR$(inss);
+      document.getElementById('previewIRRF').textContent = fmtR$(irrf);
+      document.getElementById('previewLiquido').textContent = fmtR$(valorLiquido);
+    }
+
+    // Modal Control
+    function openModal() {
+      document.getElementById('modalReverso').classList.remove('hidden');
+      document.getElementById('modalReverso').classList.add('flex');
+    }
+    function closeModal() {
+      document.getElementById('modalReverso').classList.add('hidden');
+      document.getElementById('modalReverso').classList.remove('flex');
+    }
+
+    // Cálculo Reverso
+    let ultimoBrutoCalculado = 0;
+    function calcularReverso() {
+      const meta = parseFloat(document.getElementById('metaLiquida').value) || 0;
+      if (meta <= 0) return;
+
+      const chkISS = document.getElementById('chkISS').checked;
+      const chkINSS = document.getElementById('chkINSS').checked;
+      const chkIRRF = document.getElementById('chkIRRF').checked;
+
+      let min = meta;
+      let max = meta * 3;
+      let brutoChute = meta;
+      let i = 0;
+
+      while (i < 50) {
+        brutoChute = (min + max) / 2;
+        const testISS = chkISS ? brutoChute * 0.05 : 0;
+        const testINSS = chkINSS ? brutoChute * 0.11 : 0;
+        const baseIRRF = Math.max(0, brutoChute - testINSS);
+        const testIRRF = chkIRRF ? Math.max(0, calcularIRRF2026(baseIRRF)) : 0;
+
+        const liqTest = brutoChute - (testISS + testINSS + testIRRF);
+
+        if (Math.abs(liqTest - meta) < 0.001) break;
+
+        if (liqTest < meta) {
+          min = brutoChute;
+        } else {
+          max = brutoChute;
+        }
+        i++;
+      }
+
+      ultimoBrutoCalculado = brutoChute;
+
+      const iss = chkISS ? brutoChute * 0.05 : 0;
+      const inss = chkINSS ? brutoChute * 0.11 : 0;
+      const baseIRRF = Math.max(0, brutoChute - inss);
+      const irrf = chkIRRF ? Math.max(0, calcularIRRF2026(baseIRRF)) : 0;
+
+      document.getElementById('revBruto').textContent = fmtR$(brutoChute);
+      document.getElementById('revISS').textContent = fmtR$(iss);
+      document.getElementById('revINSS').textContent = fmtR$(inss);
+      document.getElementById('revIRRF').textContent = fmtR$(irrf);
+      document.getElementById('revLiquido').textContent = fmtR$(brutoChute - (iss + inss + irrf));
+
+      document.getElementById('resultadoReverso').classList.remove('hidden');
+    }
+
+    function aplicarReversoAoFormulario() {
+      document.getElementById('valorBruto').value = ultimoBrutoCalculado.toFixed(2);
+      gerarDemonstrativo();
+      closeModal();
+    }
+
+    // Exportar Imagem
+    function gerarImagem() {
+      const card = document.getElementById('demonstrativoCard');
+      html2canvas(card, { scale: 2 }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `demonstrativo-servico-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>
