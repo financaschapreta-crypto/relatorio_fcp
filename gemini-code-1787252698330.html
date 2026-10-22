@@ -37,6 +37,7 @@
         button:hover { background-color: #2c5282; }
         button.btn-danger { background-color: #e53e3e; }
         button.btn-success { background-color: #38a169; }
+        button.btn-secondary { background-color: #4a5568; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
         table, th, td { border: 1px solid var(--border); }
@@ -45,6 +46,47 @@
 
         .status-fechado { color: #e53e3e; font-weight: bold; }
         .status-aberto { color: #38a169; font-weight: bold; }
+
+        /* MUDANÇA: Aproxima o campo de litros e o botão para não esticar na tela toda */
+        .inline-input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .inline-input-container input[type="number"] {
+            width: 220px; /* Largura ajustada para o botão ficar pertinho */
+            flex: none;
+        }
+
+        /* Modal / Aba de Histórico por Secretaria */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 85%;
+            max-width: 900px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-modal:hover { color: #000; }
 
         /* ESTILO NOTA FISCAL / RELATÓRIO */
         .relatorio-container { background: #fff; padding: 25px; border: 1px solid #e2e8f0; border-radius: 6px; }
@@ -116,9 +158,14 @@
             </select>
         </div>
 
+        <!-- MUDANÇA: Campo de digitação de litros compacto + Botão colado + Atalho para o Enter -->
         <div class="form-group">
             <label for="litros">Quantidade de Litros:</label>
-            <input type="number" id="litros" step="0.01" min="0" placeholder="0.00">
+            <div class="inline-input-container">
+                <input type="number" id="litros" step="0.01" min="0" placeholder="0.00" onkeydown="verificarTeclaEnter(event)">
+                <input type="hidden" id="editIndex" value="-1">
+                <button id="btnSalvar" onclick="salvarAbastecimento()">Adicionar Litros</button>
+            </div>
         </div>
 
         <div class="form-group">
@@ -126,28 +173,40 @@
             <input type="date" id="data">
         </div>
 
-        <input type="hidden" id="editIndex" value="-1">
-
-        <button id="btnSalvar" onclick="salvarAbastecimento()">Adicionar Litros</button>
-        <button id="btnFechar" class="btn-danger" onclick="fecharSecretaria()">Fechar Secretaria</button>
-        <button id="btnAbrir" class="btn-success" onclick="abrirSecretaria()" style="display: none;">Abrir Secretaria</button>
+        <div style="margin-top: 15px;">
+            <button id="btnFechar" class="btn-danger" onclick="fecharSecretaria()">Fechar Secretaria</button>
+            <button id="btnAbrir" class="btn-success" onclick="abrirSecretaria()" style="display: none;">Abrir Secretaria</button>
+            <button class="btn-secondary" onclick="abrirModalHistorico()">Ver Histórico e Gerenciar Secretarias</button>
+        </div>
     </div>
 
-    <div class="card no-print">
-        <h2>Registros Inseridos (Visão do Usuário)</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Secretaria</th>
-                    <th>Posto</th>
-                    <th>Combustível</th>
-                    <th>Litros</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="tabelaRegistros"></tbody>
-        </table>
+    <!-- Modal contendo o histórico detalhado por secretaria -->
+    <div id="modalHistorico" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModalHistorico()">&times;</span>
+            <h2>Histórico de Litros Adicionados por Secretaria</h2>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="filtroSecretariaModal">Filtrar por Secretaria:</label>
+                <select id="filtroSecretariaModal" onchange="atualizarTabelaRegistrosModal()">
+                    <option value="TODAS">Todas as Secretarias</option>
+                </select>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Secretaria</th>
+                        <th>Posto</th>
+                        <th>Combustível</th>
+                        <th>Litros</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaRegistrosModal"></tbody>
+            </table>
+        </div>
     </div>
 
     <div class="card">
@@ -211,7 +270,7 @@
     </div>
 
     <script>
-        const FROTA_EDU_NOME = "Sec. Mun. de Educação Diesel S10 - Frota";
+        const FROTA_EDU_NOME = "Sec. Mun. de Educação Diesel S20 - Frota Escolar";
         const postosCadastrados = ["POSBRAL - POSTO BRANDÃO", "AUTO POSTO AS"];
         
         const lotacoesData = [
@@ -219,7 +278,7 @@
             { nome: "Sec. Mun. de Administração (Prefeitura)", cnpj: "12.334.629/0001-57" },
             { nome: "Sec. Mun. de Agricultura", cnpj: "12.334.629/0001-57" },
             { nome: "Sec. Mun. de Assistência Social - CT", cnpj: "24.029.768/0001-56" },
-            { nome: "Sec. Mun. de Educação Diesel S10", cnpj: "31.262.377/0001-42" },
+            { nome: "Sec. Mun. de Educação", cnpj: "31.262.377/0001-42" },
             { nome: FROTA_EDU_NOME, cnpj: "31.262.377/0001-42" },
             { nome: "Sec. Mun. de Infraestrutura", cnpj: "12.334.629/0001-57" },
             { nome: "Sec. Mun. de Saúde", cnpj: "12.334.629/0001-57" }
@@ -232,12 +291,21 @@
 
         function carregarLotacoes() {
             const select = document.getElementById("lotacao");
+            const selectFiltro = document.getElementById("filtroSecretariaModal");
+            
             select.innerHTML = "";
+            selectFiltro.innerHTML = '<option value="TODAS">Todas as Secretarias</option>';
+
             lotacoesData.forEach(item => {
                 const opt = document.createElement("option");
                 opt.value = item.nome;
                 opt.textContent = `${item.nome} (${item.cnpj})`;
                 select.appendChild(opt);
+
+                const optFiltro = document.createElement("option");
+                optFiltro.value = item.nome;
+                optFiltro.textContent = item.nome;
+                selectFiltro.appendChild(optFiltro);
             });
             verificarStatusLotacao();
         }
@@ -269,11 +337,20 @@
         function fecharSecretaria() { secretariasFechadas[document.getElementById("lotacao").value] = true; verificarStatusLotacao(); }
         function abrirSecretaria() { secretariasFechadas[document.getElementById("lotacao").value] = false; verificarStatusLotacao(); }
 
+        // Atalho para acionar o botão de adicionar pressionando Enter
+        function verificarTeclaEnter(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                salvarAbastecimento();
+            }
+        }
+
         function salvarAbastecimento() {
             const lotacaoNome = document.getElementById("lotacao").value;
             const combustivel = document.getElementById("combustivel").value;
             const posto = document.getElementById("posto").value;
-            const litros = parseFloat(document.getElementById("litros").value);
+            const litrosInput = document.getElementById("litros");
+            const litros = parseFloat(litrosInput.value);
             const data = document.getElementById("data").value;
             const editIndex = parseInt(document.getElementById("editIndex").value);
 
@@ -285,7 +362,11 @@
             if (editIndex === -1) registros.push(reg);
             else { registros[editIndex] = reg; document.getElementById("editIndex").value = "-1"; document.getElementById("btnSalvar").textContent = "Adicionar Litros"; }
 
-            document.getElementById("litros").value = "";
+            litrosInput.value = "";
+            
+            // Foco mantido no campo de digitação
+            litrosInput.focus();
+
             atualizarInterface();
         }
 
@@ -298,18 +379,46 @@
             document.getElementById("data").value = reg.data;
             document.getElementById("editIndex").value = index;
             document.getElementById("btnSalvar").textContent = "Atualizar";
+
+            fecharModalHistorico();
+            document.getElementById("litros").focus();
         }
 
-        function excluirRegistro(index) { if (confirm("Excluir registro?")) { registros.splice(index, 1); atualizarInterface(); } }
+        function excluirRegistro(index) { 
+            if (confirm("Excluir registro?")) { 
+                registros.splice(index, 1); 
+                atualizarInterface(); 
+            } 
+        }
 
-        function atualizarTabelaRegistros() {
-            const tbody = document.getElementById("tabelaRegistros");
+        function atualizarTabelaRegistrosModal() {
+            const tbody = document.getElementById("tabelaRegistrosModal");
+            const filtro = document.getElementById("filtroSecretariaModal").value;
             tbody.innerHTML = "";
+
             registros.forEach((reg, index) => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `<td>${reg.data}</td><td>${reg.lotacao}</td><td>${reg.posto}</td><td>${reg.combustivel}</td><td>${reg.litros.toFixed(2)} L</td><td><button onclick="editarRegistro(${index})">Editar</button><button class="btn-danger" onclick="excluirRegistro(${index})">Excluir</button></td>`;
-                tbody.appendChild(tr);
+                if (filtro === "TODAS" || reg.lotacao === filtro) {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td>${reg.data}</td><td>${reg.lotacao}</td><td>${reg.posto}</td><td>${reg.combustivel}</td><td>${reg.litros.toFixed(2)} L</td><td><button onclick="editarRegistro(${index})">Editar</button><button class="btn-danger" onclick="excluirRegistro(${index}); atualizarTabelaRegistrosModal();">Excluir</button></td>`;
+                    tbody.appendChild(tr);
+                }
             });
+        }
+
+        function abrirModalHistorico() {
+            document.getElementById("modalHistorico").style.display = "block";
+            atualizarTabelaRegistrosModal();
+        }
+
+        function fecharModalHistorico() {
+            document.getElementById("modalHistorico").style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById("modalHistorico");
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
         }
 
         function gerarRelatorios() {
@@ -336,7 +445,6 @@
                     const diesel = regs.filter(r => r.combustivel === "Diesel S10").reduce((a, b) => a + Number(b.litros), 0);
                     const etanol = regs.filter(r => r.combustivel === "Etanol").reduce((a, b) => a + Number(b.litros), 0);
 
-                    // Só exibe a linha no relatório se houver pelo menos um consumo registrado no combo (Secretaria + Posto)
                     if (gasolina > 0 || diesel > 0 || etanol > 0) {
                         const tr = document.createElement("tr");
                         tr.innerHTML = `
@@ -366,11 +474,18 @@
             const regsD = registros.filter(r => r.combustivel === "Diesel S10");
             const dFrota = regsD.filter(r => r.lotacao === FROTA_EDU_NOME).reduce((a, b) => a + Number(b.litros), 0);
             const dDemais = regsD.filter(r => r.lotacao !== FROTA_EDU_NOME).reduce((a, b) => a + Number(b.litros), 0);
-            tbodyDiesel.innerHTML += `<tr><td>Educação - Frota</td><td class="text-right"><strong>${dFrota.toFixed(2)} L</strong></td></tr>`;
+            tbodyDiesel.innerHTML += `<tr><td>Educação - Frota Escolar</td><td class="text-right"><strong>${dFrota.toFixed(2)} L</strong></td></tr>`;
             tbodyDiesel.innerHTML += `<tr><td>Demais Secretarias (Exceto Frota)</td><td class="text-right"><strong>${dDemais.toFixed(2)} L</strong></td></tr>`;
         }
 
-        function atualizarInterface() { verificarStatusLotacao(); atualizarTabelaRegistros(); gerarRelatorios(); }
+        function atualizarInterface() { 
+            verificarStatusLotacao(); 
+            gerarRelatorios(); 
+            if(document.getElementById("modalHistorico").style.display === "block") {
+                atualizarTabelaRegistrosModal();
+            }
+        }
+        
         window.onload = function() { carregarLotacoes(); setDates(); atualizarInterface(); };
     </script>
 </body>
